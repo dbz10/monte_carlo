@@ -8,7 +8,7 @@ abstract type AbstractPolicy end
 abstract type AbstractMove end
 abstract type AbstractObservable end
 
-mutable struct BaseChain <: AbstractChain
+mutable struct MarkovChain <: AbstractChain
     model::Dict # lattice, temperature, hamiltonian, etc...
     state::AbstractState # spins, fermions, whatever
     policy::AbstractPolicy # random choice, neighbors, ...
@@ -17,7 +17,7 @@ mutable struct BaseChain <: AbstractChain
     observable::AbstractObservable # some function
     data::Dict # outcomes of observable
     diagnostics::Dict # information on the MC run
-    BaseChain() = new()
+    MarkovChain() = new()
 end
 
 
@@ -51,5 +51,5 @@ end
 
 function init_Chain(chain::AbstractChain
     model=model, observable=observable, policy=policy, mc_specs=mc_specs)
-    
+
 end
