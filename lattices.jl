@@ -11,7 +11,7 @@ export Lattice
 struct SquareLattice <: Lattice
     dims::Tuple
     graph::LightGraphs.SimpleGraph{Int64}
-    lattice_vectors::Array{Int64,3}
+    lattice_vectors::Array{Int64}
 end
 
 function get_SquareLattice(dims)::SquareLattice
@@ -22,7 +22,7 @@ function get_SquareLattice(dims)::SquareLattice
     return SquareLattice(dims,graph,lattice_vectors)
 end
 
-function get_SquareLatticeVectors(dims::Tuple)::Array{Int64,3}
+function get_SquareLatticeVectors(dims::Tuple)::Array{Int64}
     ndims = length(dims)
     m0 = Matrix{Int}(I,ndims,ndims)
     return reshape(m0,(ndims,1,ndims))

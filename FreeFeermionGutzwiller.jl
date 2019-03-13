@@ -84,7 +84,7 @@ function get_all_k_states(lattice)::Tuple
     return all_k_states
 end
 
-function tight_binding_dispersion(lattice_vectors::Array{Int64,3}, k::Tuple)::Float64
+function tight_binding_dispersion(lattice_vectors::Array{Int64}, k::Tuple)::Float64
     k_vector = collect(k)
     terms = [exp(1im*dot(k_vector,lattice_vectors[i,:,:])) for i in 1:length(k)]
 end
