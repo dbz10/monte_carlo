@@ -69,7 +69,7 @@ function get_filled_k_states(lattice,fermi_energy,hamiltonian)::Tuple
 lattice_vectors = lattice.lattice_vectors
 
 all_k_states = get_all_k_states(lattice)
-all_k_energies = dispersion(lattice_vectors,all_k_states)
+all_k_energies = tight_binding_dispersion(lattice_vectors,all_k_states)
 
 filled_k_states = all_k_states(all_k_energies < fermi_energy)
 
@@ -84,7 +84,9 @@ function get_all_k_states(lattice)::Tuple
     return all_k_states
 end
 
-function dispersion(lattice_vectors::Tuple, k::Tuple)::Float64
+function tight_binding_dispersion(lattice_vectors::Array{Int64,3}, k::Tuple)::Float64
+    k_vector = collect(k)
+    terms = [exp(1im*dot(k_vector,lattice_vectors[i,:,:])) for i in 1:length(k)]
 end
 
 
