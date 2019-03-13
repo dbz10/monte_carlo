@@ -20,10 +20,19 @@ mutable struct MarkovChain <: AbstractChain
     MarkovChain() = new()
 end
 
+# functions to access parameters of a generic markov chain
+get_MarkovChain(c::MarkovChain) = c
+get_Model(c::AbstractChain) = get_MarkovChain(c).model
+get_State(c::AbstractChain) = get_MarkovChain(c).state
+get_Policy(c::AbstractChain) = get_MarkovChain(c).policy
+get_Observable(c::AbstractChain) = get_MarkovChain(c).observable
+get_Diagnostics(c::AbstractChain) = get_MarkovChain(c).diagnostics
+get_Mc_Spec(c::AbstractChain) = get_MarkovChain(c).mc_spec
+get_Data(c::AbstractChain) = get_MarkovChain(c).data
 
 
 
-function runMC(chain::AbstractChain)
+function runMC!(chain::AbstractChain)
     mc_specs = get_mc_specs(chain)
     NUM_MC_STEPS = mc_specs["num_mc_steps"]
     NUM_MC_WARMUP_STEPS = mc_specs["num_mc_warmup_steps"]
@@ -45,11 +54,20 @@ function runMC(chain::AbstractChain)
     aggregate_diagnostics!(chain)
 end
 
+# measures a generic observable
 function measure_observable!(chain::AbstractChain)
-
 end
 
-function init_Chain(chain::AbstractChain
-    model=model, observable=observable, policy=policy, mc_specs=mc_specs)
-
+# initialize a markov chain
+function init_Chain!(
+    chain::AbstractChain;
+    model=model, observable=observable, policy=policy, mc_spec=mc_spec)
+    chain.basechain = MarkovChain()
+    chain.basechain.model = model
+    chain.basechain.state = get_init_state(chain)
+    chain.basechain.policy = policy
+    chain.basechain.mc_spec = mc_spec
+    chain.basechain.data = observable(chain)
+    chain.basechain.diagnostics = get_init_diagnostics(policy)
+    chain.basechain.observable = observable
 end

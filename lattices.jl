@@ -11,8 +11,8 @@ struct SquareLattice <: Lattice
     graph::LightGraphs.SimpleGraph{Int64}
 end
 
-function get_SquareLattice(dims)
-    graph = LightGraphs.Grid([d for d in dims],periodic=true)
+function get_SquareLattice(dims)::SquareLattice
+    graph = LightGraphs.Grid([d for d in dims],periodic=false)
     return SquareLattice(dims,graph)
 end
 
@@ -21,4 +21,5 @@ struct TriangularLattice <: Lattice
     graph::LightGraphs.SimpleGraph{Int64}
 end
 
-    
+
+end
