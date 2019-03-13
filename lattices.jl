@@ -1,3 +1,8 @@
+# Module for constructing lattices
+# Things to add:
+#   - support for unit cell
+#   - support for generic lattices (so far only have square)
+
 module Lattices
 
 import LightGraphs

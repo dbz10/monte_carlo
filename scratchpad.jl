@@ -2,23 +2,31 @@ include("lattices.jl")
 include("FreeFermionGutzwiller.jl")
 using LinearAlgebra
 
-lattice = Lattices.get_SquareLattice((6,2))
+lattice = Lattices.get_SquareLattice((4,3))
 
 using GraphPlot
 using LightGraphs
 
-gplot(lattice.graph)
+nvertices = nv(lattice.graph)
+nedges = ne(lattice.graph)
+gplot(lattice.graph,nodelabel=1:nvertices,edgelabel=1:nedges)
 
 lv = lattice.lattice_vectors
 
-
-k = (pi/6, pi/20)
-k_vector = collect(k)
-lv[2,:,:]
-
-
-terms = [exp(1im*dot(k_vector,lv[i,:,:])) for i in 1:length(k)]
-sum(terms +conj(terms))
+# for (ind,e) in zip(1:nedges,edges(lattice.graph))
+#     u, v = src(e), dst(e)
+#     println("edge $ind connects $u - $v")
+# end
 
 
--2*cos(pi/6)-2cos(pi/20)
+R_up = [1 4 5 7 8 9]
+R_down = [2 3 6 10 11 12]
+
+sco = FreeFermionGutzwiller.get_spin_config(R_up,R_down)
+
+
+
+bonds = FreeFermionGutzwiller.get_init_bonds(lattice.graph,sco)
+nvertices = nv(bonds)
+nedges = ne(bonds)
+gplot(bonds,nodelabel=1:nvertices,edgelabel=1:nedges)
