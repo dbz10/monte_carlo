@@ -1,6 +1,21 @@
 # Module containing functions and types relevant to the
 # gutzwiller projected free fermion system.
 
+# needed functions:
+# computing determinant, computing inverse, computing ratio
+# doing a swap operation
+# yellowbook which is "inverse" of R_up and R_down: it gives the spin
+# and fermion label # on each site
+# so for example, if we had 4 sites with R_up = [1,3] and R_down = [2,4]
+# then the log book would look like [(1,1), (1,-1), (2,1), (2,-1)]
+
+# another example: let R_up = [2 5 1] R_down = [4 3 6]
+# book = [(3,1), (1,1), (2,-1), (1,-1), (2,1), (3,-1)]
+# so the format is (electron #, spin)
+# should it be the other way around? maybe thats better
+# or maybe even better is to write it as
+# book = [(3,"Up"), (1,"Up"), (2,"Down"), (1,"Down"), (2,"Up"), (3,"Down")]
+
 module FreeFermionGutzwiller
 
 include("mcbase.jl")
@@ -74,7 +89,7 @@ end
 
 function attempt_update_state!(chain::GutzwillerChain,move)
     state = get_State(chain)
-    
+
 
 function get_init_state(chain::GutzwillerChain)::GutzwillerState
     # get all the model information from the chain object
