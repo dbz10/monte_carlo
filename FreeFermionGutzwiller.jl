@@ -5,7 +5,7 @@ module FreeFermionGutzwiller
 
 include("mcbase.jl")
 
-using StatsBase: sample!
+using StatsBase: sample, sample!
 using IterTools: product
 using LightGraphs:
     SimpleGraph, edges, src, dst, rem_edge!, add_edge!, neighbors
@@ -13,27 +13,72 @@ using LinearAlgebra: dot
 
 # abstract type definitions
 abstract type FreeFermionGutzwillerPolicy <: AbstractPolicy end
-abstract type FreeFermionGutzwillerMove <: AbstractMove end
+abstract type SwapMove <: AbstractMove end
 
 # concrete type defs
 mutable struct GutzwillerChain <: AbstractChain
     basechain::MarkovChain
-    Gutzwiller_Chain() = new()
+    GutzwillerChain() = new()
 end
+get_MarkovChain(c::GutzwillerChain) = c.basechain
+
 
 struct SpinConfiguration
     sc::Array
 end
 
-struct GutzwillerState <: AbstractState
-     r_up::Tuple # position of spin up electrons
-     r_down::Tuple # position of spin down electrons
-     bonds::Tuple # which bonds have disaligned spins
+struct SwapNeighborMove <: SwapMove
+    sites::Tuple
 end
+
+struct SwapNeighborsPolicy <: FreeFermionGutzwillerPolicy
+end
+
+
+function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove
+    # draw a random bond and return the two sites to exchange
+    list_of_edges = collect(1:ne(bonds))
+    edge = sample(list_of_edges)
+    move_sites = (src(edge),dst(edge))
+    return SwapNeighborMove(move_sites)
+end
+
+struct GutzwillerState <: AbstractState
+     r_up::Array{Int64} # position of spin up electrons
+     r_down::Array{Int64} # position of spin down electrons
+     spin_config::SpinConfiguration # a map of the spin configuration onto the graph
+     bonds::SimpleGraph{Int64} # which bonds have disaligned spins
+end
+
+# high level function
+function do_move(chain::GutzwillerChain)::GutzwillerChain
+    # propose a move
+    move = get_move(chain)
+    # propose the move and decide whether to accept
+    attempt_update_state!(chain,move)
+
+    return chain
+end
+
+function get_move(chain::GutzwillerChain)
+    policy = get_Policy(chain)
+    move = get_move_from_policy(chain,policy)
+    return move
+end
+
+function get_move_from_policy(chain::GutzwillerChain,policy::SwapNeighborsPolicy)::SwapNeighborMove
+    bonds = get_State(chain).bonds
+    move = get_SwapNeighborMove(bonds)
+    return move
+end
+
+function attempt_update_state!(chain::GutzwillerChain,move)
+    state = get_State(chain)
+    
 
 function get_init_state(chain::GutzwillerChain)::GutzwillerState
     # get all the model information from the chain object
-    model = get_model(chain)
+    model = get_Model(chain)
     lattice = model["lattice"]
     filling = model["filling"]
     hamiltonian = model["hamiltonian"]
@@ -43,7 +88,7 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     num_sites = prod(dims)
     sites = collect(1:num_sites)
 
-    # for now just assume fillign = 1 and paramagnetic state
+    # for now just assume filling = 1 and paramagnetic state
     # later i can add functionality for magnetic states
     # or states with holes
     n_up = Int(num_sites*filling/2)
@@ -55,16 +100,16 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
 
 
     sample!(sites,R_up,replace=false)
-    leftover_sites = collect(setdiff(Set(R_up),Set(sites)))
+    leftover_sites = collect(setdiff(Set(sites),Set(R_up)))
     sample!(leftover_sites,R_down,replace=false)
 
     spin_configuration = get_spin_config(R_up,R_down)
 
     # create list of neighbors which can be swapped in current configuration
-    bonds = get_bonds(lattice.graph,spin_configuration)
+    bonds = get_init_bonds(lattice.graph,spin_configuration)
 
     # make the state object and return
-    state = GutzwillerState(R_up,R_down,bonds)
+    state = GutzwillerState(R_up,R_down,spin_configuration,bonds)
     return state
 end
 

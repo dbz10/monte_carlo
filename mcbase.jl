@@ -43,7 +43,7 @@ function runMC!(chain::AbstractChain)
 
     # carry out monte carlo sampling of observable
     for i = 1:NUM_MC_STEPS
-        do_move(chain)
+        do_move!(chain)
         if mod(i,SAMPLE_INTERVAL) == 0
             measure_observable!(chain)
         end

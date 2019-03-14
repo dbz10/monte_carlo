@@ -11,6 +11,8 @@ nvertices = nv(lattice.graph)
 nedges = ne(lattice.graph)
 gplot(lattice.graph,nodelabel=1:nvertices,edgelabel=1:nedges)
 
+
+
 lv = lattice.lattice_vectors
 
 # for (ind,e) in zip(1:nedges,edges(lattice.graph))
@@ -30,3 +32,40 @@ bonds = FreeFermionGutzwiller.get_init_bonds(lattice.graph,sco)
 nvertices = nv(bonds)
 nedges = ne(bonds)
 gplot(bonds,nodelabel=1:nvertices,edgelabel=1:nedges)
+
+
+# define a model
+dims = (4,3) # dimension of the lattice
+lattice = Lattices.get_SquareLattice(dims) # make a square lattice
+filling = 1 # setting filling ≢ 1 means there are holes.
+
+model = Dict(
+    "dims" => dims,
+    "lattice" => lattice,
+    "filling" => filling,
+    "hamiltonian" => FreeFermionGutzwiller.tight_binding_dispersion
+    )
+
+gutzwiller_chain = FreeFermionGutzwiller.GutzwillerChain()
+
+FreeFermionGutzwiller.init_Chain!(gutzwiller_chain,model=model)
+
+
+
+collect(1:4)
+
+collect(setdiff(Set(collect(1:12)),Set(R_up)))
+
+R_up = zeros(Int64,6)
+R_down = zeros(Int64,6)
+
+sites = collect(1:12)
+
+using StatsBase: sample!
+
+sample!(sites,R_up,replace=false)
+R_up
+
+leftover_sites=collect(setdiff(Set(sites),Set(R_up)))
+
+sample!(leftover_sites,R_down,replace=false)

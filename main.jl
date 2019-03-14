@@ -16,6 +16,7 @@ model = Dict(
     "lattice" => lattice,
     "observable" => observable,
     "filling" => filling,
+    "hamiltonian" => FreeFermionGutzwiller.tight_binding_dispersion
 )
 
 # Policy
@@ -29,6 +30,14 @@ mc_specs = Dict(
     "num_times" => 5,
     )
 
+function observable(chain::FreeFermionGutzwiller.GutzwillerChain)
+    state = get_State(chain)
+    thingy = state.spin_config.sc[1]
+    data = Dict("thingy" => thingy)
+    return data
+end
+
+
 
 # create a markov chain object representing our gutzwiller projected
 # free fermion model
@@ -38,4 +47,4 @@ gutzwiller_chain = FreeFermionGutzwiller.Gutzwiller_Chain()
 FreeFermionGutzwiller.init_Chain!(gutzwiller_chain,
     model=model,observable=observable,policy=policy,mc_spec=mc_spec)
 
-FreeFermionGutzwiller.runMC!(gutzwiller_chain)
+# FreeFermionGutzwiller.runMC!(gutzwiller_chain)
