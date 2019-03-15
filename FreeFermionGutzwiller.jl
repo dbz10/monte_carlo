@@ -158,9 +158,12 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     return state
 end
 
-function get_coordinate_from_index(index::Int64,dims,lattice)::Array
+
+""" put into gutzwiller_state the list of actual coordinate as well """
+function get_coordinate_from_index(index::Int64,lattice)::Array
     """ Some modular arithmetic to retrieve the coordinate
     based on the number of the vertex. we put vertex 1 at the origin """
+    dims = lattice.dims
     d = length(dims)
     coord = zeros(Int64,d) # n_i v_i + n_j v_k + ...
     n = zeros(Int64,d) #n_i, n_j, n_k
