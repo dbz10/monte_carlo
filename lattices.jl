@@ -28,9 +28,11 @@ function get_SquareLattice(dims)::SquareLattice
 end
 
 function get_SquareLatticeVectors(dims::Tuple)::Array{Int64}
+    """ returns array of lattice vectors
+    v[i,:,:] is the i'th lattice vector"""
     ndims = length(dims)
     m0 = Matrix{Int}(I,ndims,ndims)
-    return reshape(m0,(ndims,1,ndims))
+    return m0
 end
 
 
