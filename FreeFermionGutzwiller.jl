@@ -23,8 +23,9 @@ include("mcbase.jl")
 using StatsBase: sample, sample!
 using IterTools: product
 using LightGraphs:
-    SimpleGraph, edges, src, dst, rem_edge!, add_edge!, neighbors
-using LinearAlgebra: dot, det, inv
+    SimpleGraph, edges, src, dst, rem_edge!, add_edge!, neighbors,
+    adjacency_matrix
+using LinearAlgebra: dot, det, inv, eigen
 
 # abstract type definitions
 abstract type FreeFermionGutzwillerPolicy <: AbstractPolicy end
@@ -230,42 +231,45 @@ function get_inverse_matrix(r,k)
 end
 
 
-function get_filled_k_states(lattice,fermi_energy,hamiltonian)::Array{Tuple}
-    # for now let's limit to lattices with a single site unit cell.
-    # we need the dispersion relation, which is
-    # sum of lattice vectors j e^{i k r_j} + h.c.
-    # if ϵ(k) < ϵ_f, then we should include that k value in the list
-    # of filled k states
-    # dispersion is a function that calculates the energy of a particular
-    # k state based on the lattice
+"""I think the following 3 functions have been made redundant"""
+# function get_filled_k_states(lattice,fermi_energy,hamiltonian)::Array{Tuple}
+#     # for now let's limit to lattices with a single site unit cell.
+#     # we need the dispersion relation, which is
+#     # sum of lattice vectors j e^{i k r_j} + h.c.
+#     # if ϵ(k) < ϵ_f, then we should include that k value in the list
+#     # of filled k states
+#     # dispersion is a function that calculates the energy of a particular
+#     # k state based on the lattice
+#
+#     lattice_vectors = lattice.lattice_vectors
+#
+#     all_k_states = get_all_k_states(lattice)
+#     all_k_energies = [hamiltonian(lattice_vectors,k) for k in all_k_states]
+#
+#     filled_k_states = all_k_states[all_k_energies .< fermi_energy]
+#
+#     return filled_k_states
+# end
+#
+#
+# function get_all_k_states(lattice)::Array{Tuple}
+#     lattice_dimensions = lattice.dims
+#     single_dimension_k_lists = [2*pi/d*(1:d) for d in lattice_dimensions]
+#     all_k_states_obj = product(single_dimension_k_lists...)
+#     list_of_k_states = reshape(collect(all_k_states_obj),(:,1))
+#
+#     return list_of_k_states
+# end
+#
+# function tight_binding_dispersion(lattice_vectors::Array{Int64}, k::Tuple)::Float64
+#     # using t = 1
+#     # dispersion relation for hopping -t \sum_{ij} c^\dagger_i c_j
+#     k_vector = collect(k)
+#     terms = [exp(1im*dot(k_vector,lattice_vectors[i,:])) for i in 1:length(k)]
+#     return -real(sum(terms+conj(terms)))
+# end
 
-    lattice_vectors = lattice.lattice_vectors
 
-    all_k_states = get_all_k_states(lattice)
-    all_k_energies = [hamiltonian(lattice_vectors,k) for k in all_k_states]
-
-    filled_k_states = all_k_states[all_k_energies .< fermi_energy]
-
-    return filled_k_states
-end
-
-
-function get_all_k_states(lattice)::Array{Tuple}
-    lattice_dimensions = lattice.dims
-    single_dimension_k_lists = [2*pi/d*(1:d) for d in lattice_dimensions]
-    all_k_states_obj = product(single_dimension_k_lists...)
-    list_of_k_states = reshape(collect(all_k_states_obj),(:,1))
-
-    return list_of_k_states
-end
-
-function tight_binding_dispersion(lattice_vectors::Array{Int64}, k::Tuple)::Float64
-    # using t = 1
-    # dispersion relation for hopping -t \sum_{ij} c^\dagger_i c_j
-    k_vector = collect(k)
-    terms = [exp(1im*dot(k_vector,lattice_vectors[i,:])) for i in 1:length(k)]
-    return -real(sum(terms+conj(terms)))
-end
 
 
 end
