@@ -144,20 +144,35 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     # create list of neighbors which can be swapped in current configuration
     bonds = get_init_bonds(lattice.graph,spin_configuration)
 
-    # calculate the determinants of the up and down spin matrices
-    kf = get_filled_k_states(lattice,fermi_energy,hamiltonian)
-    det_A_up = get_determinant(R_up,kf)
-    det_A_down = get_determinant(R_down,kf)
+    # get occupied wavefunctions from lattice and fermi energy
+    filled_states = get_States(model)
+
+    # calculate determinants
+    det_A_up = get_Determinant(R_up,filled_states)
+    det_A_down = get_Determinant(R_down,filled_states)
 
     # calculate inverse matrices for A_up and A_down
-    A_inv_up = get_inverse_matrix(R_up,kf)
-    A_inv_down = get_inverse_matrix(R_down,kf)
+    A_inv_up = get_Inverse_Matrix(R_up,filled_states)
+    A_inv_down = get_Inverse_Matrix(R_down,filled_states)
 
     # make the state object and return
     state = GutzwillerState(R_up,R_down,spin_configuration,bonds,
                             det_A_up, det_A_down, A_inv_up,A_inv_down)
     return state
 end
+
+function get_States(model::Dict)::Array
+    lattice = model["lattice"]
+    fermi_energy = model["fermi_energy"]
+    hamiltonian = model["hamiltonian"]
+    # calculate the determinants of the up and down spin matrices
+    EO = hamiltonian(lattice) # eigen object
+    wavefunctions = EO.vectors # wavefunctions[i,j] =   ϕ_j(r_i)
+    eigenvalues = EO.values
+    filled_mask = eigenvalues.<fermi_energy # find index of filled wavefunctions
+    filled_states = wavefunctions[:,filled_mask] # ϕ_{ϵ(j) < ϵ_f} (r_i)
+end
+
 
 
 """ put into gutzwiller_state the list of actual coordinate as well """
@@ -216,17 +231,17 @@ function get_init_bonds(
     return bonds
 end
 
-function get_determinant(r,k)
+function get_Determinant(r,states)
     """ Form the matrix ϕ(r_i, k_j) and calculate its determinant
     this is not entirely general, could stand to make it
     more modular. different models could have different wavefunctions """
-    mat = [exp(1im*dot(ri,kj)) for ri in r, kj in k]
+    mat = states[r,:]
     return det(mat)
 end
 
-function get_inverse_matrix(r,k)
+function get_Inverse_Matrix(r,states)
     """ Compute the inverse of the matrix ϕ(r_i, k_j) """
-    mat = exp.(1im*r*k')
+    mat = states[r,:]
     return inv(mat)
 end
 
