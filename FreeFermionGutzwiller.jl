@@ -47,7 +47,7 @@ struct SwapNeighborMove <: SwapMove
     sites::Tuple
 end
 
-struct SwapNeighborsPolicy <: FreeFermionGutzwillerPolicy
+struct SwapNeighborsPolicy <: AbstractPolicy
 end
 
 
