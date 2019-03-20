@@ -33,7 +33,7 @@ mc_specs = Dict(
 function observable(chain::FreeFermionGutzwiller.GutzwillerChain)
     state = get_State(chain)
     thingy = state.spin_config.sc[1]
-    data = Dict("thingy" => thingy)
+    data = Dict("Sz1" => thingy)
     return data
 end
 

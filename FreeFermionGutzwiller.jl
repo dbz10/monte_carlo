@@ -21,10 +21,10 @@ module FreeFermionGutzwiller
 include("mcbase.jl")
 
 using StatsBase: sample, sample!
-using IterTools: product
+using IterTools: nth
 using LightGraphs:
     SimpleGraph, edges, src, dst, rem_edge!, add_edge!, neighbors,
-    adjacency_matrix
+    adjacency_matrix, ne
 using LinearAlgebra: dot, det, inv, eigen
 
 # abstract type definitions
@@ -38,8 +38,6 @@ mutable struct GutzwillerChain <: AbstractChain
 end
 get_MarkovChain(c::GutzwillerChain) = c.basechain
 
-struct GutzwillerObservable <: AbstractObservable
-end
 
 struct SpinConfiguration
     sc::Array
@@ -55,8 +53,8 @@ end
 
 function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove
     """ draw a random bond and return the two sites attached to that bond """
-    list_of_edges = collect(1:ne(bonds))
-    edge = sample(list_of_edges)
+    index = rand(1:ne(bonds))
+    edge = nth(edges(bonds),index)
     move_sites = (src(edge),dst(edge))
     return SwapNeighborMove(move_sites)
 end
@@ -66,21 +64,17 @@ struct GutzwillerState <: AbstractState
      r_down::Array{Int64} # position of spin down electrons
      spin_config::SpinConfiguration # a map of the spin configuration onto the graph
      bonds::SimpleGraph{Int64} # which bonds have disaligned spins
+     wavefunctions::Array # wavefunctions ϕ_j(r_i) where ϵ_j < ϵ_fermi
      det_A_up::Float64
      det_A_down::Float64
-     A_inv_up::Array{ComplexF64}
-     A_inv_down::Array{ComplexF64}
+     A_inv_up::Array
+     A_inv_down::Array
 end
 
 # high level function
-function do_move!(chain::GutzwillerChain)::GutzwillerChain
-    """ get a move, try it, and update the state """
-    move = get_move(chain)
-    attempt_update_state!(chain,move)
-    return chain
-end
 
-function get_move(chain::GutzwillerChain)
+
+function get_Move(chain::GutzwillerChain)
     """ Get a move from the policy of the chain """
     policy = get_Policy(chain)
     move = get_move_from_policy(chain,policy)
@@ -94,23 +88,77 @@ function get_move_from_policy(chain::GutzwillerChain,policy::SwapNeighborsPolicy
     return move
 end
 
-function attempt_update_state!(chain::GutzwillerChain,move)
-    """ Get the ratio of the proposed move
-    and decide whether to accept or reject"""
-    state = get_State(chain)
-    ratio = compute_ratio(state,move)
-    if ratio > rand()
-        update_state!(chain,move)
-    end
-end
+
 
 function update_state!(chain::GutzwillerChain,move)
 end
 
 
-function compute_ratio(state::GutzwillerState,move::SwapNeighborMove)
+function compute_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
 
+    """ Computes transition amplitude"""
+    state = get_State(chain)
+    wavefunctions = state.wavefunctions
+
+    u, v = get_update_vectors(wavefunctions,move)
+    # note that u to update the down determinant is -u
+    # that was used to update the up determinant since
+    # u_i(r1-> r2) = ϕ_i(r2) - ϕi(r1)
+    # hence u_i(r2-> r1) = -u_i(r1-> r2)
+
+    # up and down electrons have same wavefunction.
+    # we do need to figure out whether move[1] is
+    # an up or down spin though
+    spin_A = get_spin_of_site(state,move[1])
+
+    if spin_A == +1
+        det_ratio_up = det_ratio_factor(state.A_inv_up,u,v)
+        det_ratio_down = det_ratio_factor(state.A_inv_down,-u,v)
+    else
+        det_ratio_up = det_ratio_factor(state.A_inv_up,-u,v)
+        det_ratio_down = det_ratio_factor(state.A_inv_down,u,v)
+    end
+
+    # we also need the ratio of proposal factors
+    pf_ratio = get_proposal_factor_ratio(chain,move)
+
+    return ratio_up*ratio_down*pf_ratio
 end
+
+function get_proposal_factor_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
+    state = get_State(chain)
+    bonds = state.bonds
+    configuration_factor_old = count_bonds(bonds)
+    new_bonds = update_bonds(state,move)
+    configuration_factor_new = count_bonds(new_bonds)
+    return configuration_factor_new/configuration_factor_old
+end
+
+
+count_bonds(graph::SimpleGraph{Int64}) = ne(graph)
+
+function get_updated_bonds(chain::GutzwillerChain,move::SwapNeighborMove)
+    """ Returns a new graph object with the bonds of the updated state"""
+    state = get_State(chain)
+    model = get_Model(chain)
+    lattice = model["lattice"]
+
+    sc = deepcopy(state.spin_config.sc)
+    bonds = deepcopy(state.bonds)
+    sc[move.sites[1]], sc[move.sites[2]] = sc[move.sites[2]], sc[move.sites[1]]
+
+    for site in move.sites
+        for neighbor in neighbors(lattice.graph,site)
+            if sc[site] == sc[neighbor]
+                rem_edge!(bonds,site,neighbor)
+            else
+                add_edge!(bonds,site,neighbor)
+            end
+        end
+    end
+    return bonds
+end
+
 
 
 function get_init_state(chain::GutzwillerChain)::GutzwillerState
@@ -147,7 +195,7 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     bonds = get_init_bonds(lattice.graph,spin_configuration)
 
     # get occupied wavefunctions from lattice and fermi energy
-    filled_states = get_States(model)
+    filled_states = get_Wavefunctions(model)
 
     # calculate determinants
     det_A_up = get_Determinant(R_up,filled_states)
@@ -158,12 +206,12 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     A_inv_down = get_Inverse_Matrix(R_down,filled_states)
 
     # make the state object and return
-    state = GutzwillerState(R_up,R_down,spin_configuration,bonds,
+    state = GutzwillerState(R_up,R_down,spin_configuration,bonds, filled_states,
                             det_A_up, det_A_down, A_inv_up,A_inv_down)
     return state
 end
 
-function get_States(model::Dict)::Array
+function get_Wavefunctions(model::Dict)::Array
     lattice = model["lattice"]
     fermi_energy = model["fermi_energy"]
     hamiltonian = model["hamiltonian"]
@@ -177,27 +225,7 @@ end
 
 
 
-""" put into gutzwiller_state the list of actual coordinate as well """
-function get_coordinate_from_index(index::Int64,lattice)::Array
-    """ Some modular arithmetic to retrieve the coordinate
-    based on the number of the vertex. we put vertex 1 at the origin """
-    dims = lattice.dims
-    d = length(dims)
-    coord = zeros(Int64,d) # n_i v_i + n_j v_k + ...
-    n = zeros(Int64,d) #n_i, n_j, n_k
-    nsites = prod(dims)
-    lattice_vectors = lattice.lattice_vectors
-    ip = index-1
-    denominator = cumprod([1; collect(dims[1:d-1])])
 
-    for i in 1:(d-1)
-        n[i] = floor(ip/denominator[i]) % dims[i]
-        coord += n[i] * lattice_vectors[i,:]
-    end
-    n[d] = floor(ip/denominator[d])
-    coord += n[d] * lattice_vectors[d,:]
-    return coord
-end
 
 
 
@@ -248,7 +276,7 @@ function get_Inverse_Matrix(r,states)
 end
 
 
-"""I think the following 3 functions have been made redundant"""
+"""I think the following functions are deprecated"""
 # function get_filled_k_states(lattice,fermi_energy,hamiltonian)::Array{Tuple}
 #     # for now let's limit to lattices with a single site unit cell.
 #     # we need the dispersion relation, which is
@@ -286,7 +314,27 @@ end
 #     return -real(sum(terms+conj(terms)))
 # end
 
-
+# """ put into gutzwiller_state the list of actual coordinate as well """
+# function get_coordinate_from_index(index::Int64,lattice)::Array
+#     """ Some modular arithmetic to retrieve the coordinate
+#     based on the number of the vertex. we put vertex 1 at the origin """
+#     dims = lattice.dims
+#     d = length(dims)
+#     coord = zeros(Int64,d) # n_i v_i + n_j v_k + ...
+#     n = zeros(Int64,d) #n_i, n_j, n_k
+#     nsites = prod(dims)
+#     lattice_vectors = lattice.lattice_vectors
+#     ip = index-1
+#     denominator = cumprod([1; collect(dims[1:d-1])])
+#
+#     for i in 1:(d-1)
+#         n[i] = floor(ip/denominator[i]) % dims[i]
+#         coord += n[i] * lattice_vectors[i,:]
+#     end
+#     n[d] = floor(ip/denominator[d])
+#     coord += n[d] * lattice_vectors[d,:]
+#     return coord
+# end
 
 
 end

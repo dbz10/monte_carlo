@@ -14,7 +14,7 @@ mutable struct MarkovChain <: AbstractChain
     policy::AbstractPolicy # random choice, neighbors, ...
     move::AbstractMove # flip a spin, exchange neighbors, ...
     mc_spec::Dict # MC steps, MC warmup, measurement interval
-    observable::AbstractObservable # some function
+    observable::Any # some function
     data::Dict # outcomes of observable
     diagnostics::Dict # information on the MC run
     MarkovChain() = new()
@@ -31,7 +31,7 @@ get_Mc_Spec(c::AbstractChain) = get_MarkovChain(c).mc_spec
 get_Data(c::AbstractChain) = get_MarkovChain(c).data
 
 
-
+""" Run Monte Carlo"""
 function runMC!(chain::AbstractChain)
     mc_specs = get_mc_specs(chain)
     NUM_MC_STEPS = mc_specs["num_mc_steps"]
@@ -58,7 +58,7 @@ end
 function measure_observable!(chain::AbstractChain)
 end
 
-# initialize a markov chain
+""" Initialize a markov chain """
 function init_Chain!(
     chain::AbstractChain;
     model=model, observable=observable, policy=policy, mc_spec=mc_spec)
@@ -67,7 +67,18 @@ function init_Chain!(
     chain.basechain.state = get_init_state(chain)
     chain.basechain.policy = policy
     chain.basechain.mc_spec = mc_spec
-    # chain.basechain.data = observable(chain)
+    chain.basechain.data = observable(chain)
     # chain.basechain.diagnostics = get_init_diagnostics(policy)
     chain.basechain.observable = observable
+end
+
+
+function process_move!(chain,move)
+    """ Get the ratio of the proposed move
+    and decide whether to accept or reject"""
+    state = get_State(chain)
+    ratio = compute_ratio(state,move)
+    if ratio > rand()
+        update_state!(chain,move)
+    end
 end

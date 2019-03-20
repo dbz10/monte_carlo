@@ -19,7 +19,15 @@ model = Dict(
     "hamiltonian" => Lattices.get_Tightbinding_Wavefunctions,
     "fermi_energy" => 0,
     )
-observable = FreeFermionGutzwiller.GutzwillerObservable()
+
+function observable(chain::FreeFermionGutzwiller.GutzwillerChain)
+    state = FreeFermionGutzwiller.get_State(chain)
+    thingy = state.spin_config.sc[1]
+    data = Dict("Sz1" => thingy)
+    return data
+end
+
+
 policy = FreeFermionGutzwiller.SwapNeighborsPolicy()
 mc_spec = Dict("mc_steps" => 1)
 
@@ -29,6 +37,8 @@ gutz = FreeFermionGutzwiller.GutzwillerChain()
 FreeFermionGutzwiller.init_Chain!(gutz,
         model=model,observable=observable,policy=policy,mc_spec=mc_spec
         )
+
+FreeFermionGutzwiller.get_Data(gutz)
 
 R_up = [3,2,7,4,1]
 R_down = [8,9,10,5,6]
