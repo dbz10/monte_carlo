@@ -3,14 +3,18 @@ include("FreeFermionGutzwiller.jl")
 
 using LinearAlgebra
 using GraphPlot
+using LightGraphs
+using IterTools
 
 
 
 # define a model
-dims = (10,) # dimension of the lattice
-lattice = Lattices.get_SquareLattice(dims,true) # make a square lattice
+dims = (2,3) # dimension of the lattice
+lattice = Lattices.get_SquareLattice(dims,false) # make a square lattice
 filling = 1 # setting filling ≢ 1 means there are holes.
 
+
+gplot(lattice.graph,nodelabel=collect(1:nv(lattice.graph)))
 
 model = Dict(
     "dims" => dims,
@@ -38,28 +42,12 @@ FreeFermionGutzwiller.init_Chain!(gutz,
         model=model,observable=observable,policy=policy,mc_spec=mc_spec
         )
 
-FreeFermionGutzwiller.get_Data(gutz)
+state = FreeFermionGutzwiller.get_State(gutz)
+gplot(state.bonds,nodelabel=collect(1:nv(lattice.graph)))
 
-R_up = [3,2,7,4,1]
-R_down = [8,9,10,5,6]
 
-states = FreeFermionGutzwiller.get_States(model)
+move=FreeFermionGutzwiller.get_Move(gutz)
+updated_bonds = FreeFermionGutzwiller.get_updated_bonds(gutz,move)
+gplot(updated_bonds,nodelabel=collect(1:nv(lattice.graph)))
 
-FreeFermionGutzwiller.get_Determinant(R_up,states)
-FreeFermionGutzwiller.get_Determinant(R_down,states)
-
-abstract type dnum end
-
-mutable struct num <: dnum
-    val::Float64
-end
-
-function add(v::dnum,z::dnum)
-    return v.val + z.val
-end
-
-a = num(1)
-
-b=num(3)
-
-add(a,b)
+print(state.spin_config.sc)

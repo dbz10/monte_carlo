@@ -74,7 +74,7 @@ end
 
 
 function process_move!(chain,move)
-    """ Get the ratio of the proposed move
+    """ Get the ratio for the proposed move
     and decide whether to accept or reject"""
     state = get_State(chain)
     ratio = compute_ratio(state,move)

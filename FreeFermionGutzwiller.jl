@@ -19,6 +19,8 @@
 module FreeFermionGutzwiller
 
 include("mcbase.jl")
+include("FFGmath.jl")
+include("FFGhelpers.jl")
 
 using StatsBase: sample, sample!
 using IterTools: nth
@@ -129,7 +131,7 @@ function get_proposal_factor_ratio(chain::GutzwillerChain,move::SwapNeighborMove
     state = get_State(chain)
     bonds = state.bonds
     configuration_factor_old = count_bonds(bonds)
-    new_bonds = update_bonds(state,move)
+    new_bonds = get_updated_bonds(state,move)
     configuration_factor_new = count_bonds(new_bonds)
     return configuration_factor_new/configuration_factor_old
 end
@@ -137,7 +139,7 @@ end
 
 count_bonds(graph::SimpleGraph{Int64}) = ne(graph)
 
-function get_updated_bonds(chain::GutzwillerChain,move::SwapNeighborMove)
+function get_updated_bonds(chain::GutzwillerChain,move::SwapNeighborMove)::SimpleGraph{Int64}
     """ Returns a new graph object with the bonds of the updated state"""
     state = get_State(chain)
     model = get_Model(chain)
@@ -276,65 +278,6 @@ function get_Inverse_Matrix(r,states)
 end
 
 
-"""I think the following functions are deprecated"""
-# function get_filled_k_states(lattice,fermi_energy,hamiltonian)::Array{Tuple}
-#     # for now let's limit to lattices with a single site unit cell.
-#     # we need the dispersion relation, which is
-#     # sum of lattice vectors j e^{i k r_j} + h.c.
-#     # if ϵ(k) < ϵ_f, then we should include that k value in the list
-#     # of filled k states
-#     # dispersion is a function that calculates the energy of a particular
-#     # k state based on the lattice
-#
-#     lattice_vectors = lattice.lattice_vectors
-#
-#     all_k_states = get_all_k_states(lattice)
-#     all_k_energies = [hamiltonian(lattice_vectors,k) for k in all_k_states]
-#
-#     filled_k_states = all_k_states[all_k_energies .< fermi_energy]
-#
-#     return filled_k_states
-# end
-#
-#
-# function get_all_k_states(lattice)::Array{Tuple}
-#     lattice_dimensions = lattice.dims
-#     single_dimension_k_lists = [2*pi/d*(1:d) for d in lattice_dimensions]
-#     all_k_states_obj = product(single_dimension_k_lists...)
-#     list_of_k_states = reshape(collect(all_k_states_obj),(:,1))
-#
-#     return list_of_k_states
-# end
-#
-# function tight_binding_dispersion(lattice_vectors::Array{Int64}, k::Tuple)::Float64
-#     # using t = 1
-#     # dispersion relation for hopping -t \sum_{ij} c^\dagger_i c_j
-#     k_vector = collect(k)
-#     terms = [exp(1im*dot(k_vector,lattice_vectors[i,:])) for i in 1:length(k)]
-#     return -real(sum(terms+conj(terms)))
-# end
-
-# """ put into gutzwiller_state the list of actual coordinate as well """
-# function get_coordinate_from_index(index::Int64,lattice)::Array
-#     """ Some modular arithmetic to retrieve the coordinate
-#     based on the number of the vertex. we put vertex 1 at the origin """
-#     dims = lattice.dims
-#     d = length(dims)
-#     coord = zeros(Int64,d) # n_i v_i + n_j v_k + ...
-#     n = zeros(Int64,d) #n_i, n_j, n_k
-#     nsites = prod(dims)
-#     lattice_vectors = lattice.lattice_vectors
-#     ip = index-1
-#     denominator = cumprod([1; collect(dims[1:d-1])])
-#
-#     for i in 1:(d-1)
-#         n[i] = floor(ip/denominator[i]) % dims[i]
-#         coord += n[i] * lattice_vectors[i,:]
-#     end
-#     n[d] = floor(ip/denominator[d])
-#     coord += n[d] * lattice_vectors[d,:]
-#     return coord
-# end
 
 
 end
