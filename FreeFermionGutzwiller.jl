@@ -2,7 +2,7 @@
 # gutzwiller projected free fermion system.
 
 # needed functions:
-# computing determinant, computing inverse, computing ratio
+#  computing ratio
 # doing a swap operation
 # yellowbook which is "inverse" of R_up and R_down: it gives the spin
 # and fermion label # on each site
@@ -42,6 +42,7 @@ get_MarkovChain(c::GutzwillerChain) = c.basechain
 
 
 struct SpinConfiguration
+    """ This is borderline pointless, it's just a typed array"""
     sc::Array
 end
 
@@ -50,15 +51,6 @@ struct SwapNeighborMove <: SwapMove
 end
 
 struct SwapNeighborsPolicy <: FreeFermionGutzwillerPolicy
-end
-
-
-function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove
-    """ draw a random bond and return the two sites attached to that bond """
-    index = rand(1:ne(bonds))
-    edge = nth(edges(bonds),index)
-    move_sites = (src(edge),dst(edge))
-    return SwapNeighborMove(move_sites)
 end
 
 struct GutzwillerState <: AbstractState
@@ -73,14 +65,86 @@ struct GutzwillerState <: AbstractState
      A_inv_down::Array
 end
 
-# high level function
-
-
+""" High level functions """
 function get_Move(chain::GutzwillerChain)
     """ Get a move from the policy of the chain """
     policy = get_Policy(chain)
     move = get_move_from_policy(chain,policy)
     return move
+end
+
+function update_state!(chain::GutzwillerChain,move)
+end
+
+function get_Wavefunctions(model::Dict)::Array
+    lattice = model["lattice"]
+    fermi_energy = model["fermi_energy"]
+    hamiltonian = model["hamiltonian"]
+    # calculate the determinants of the up and down spin matrices
+    EO = hamiltonian(lattice) # eigen object
+    wavefunctions = EO.vectors # wavefunctions[i,j] =   ϕ_j(r_i)
+    eigenvalues = EO.values
+    filled_mask = eigenvalues.<fermi_energy # find index of filled wavefunctions
+    filled_states = wavefunctions[:,filled_mask] # ϕ_{ϵ(j) < ϵ_f} (r_i)
+end
+
+function get_init_state(chain::GutzwillerChain)::GutzwillerState
+    # get all the model information from the chain object
+    model = get_Model(chain)
+    lattice = model["lattice"]
+    filling = model["filling"]
+    fermi_energy = model["fermi_energy"]
+    hamiltonian = model["hamiltonian"]
+    dims = model["dims"]
+
+    # Distribute electrons over the sites of the lattice
+    num_sites = prod(dims)
+    sites = collect(1:num_sites)
+
+    # for now just assume filling = 1 and paramagnetic state
+    # later i can add functionality for magnetic states
+    # or states with holes
+    n_up = Int(num_sites*filling/2)
+    n_down = Int(num_sites*filling/2)
+
+    # vectors to store the location of the up and down electrons
+    R_up = zeros(Int64, n_up)
+    R_down = zeros(Int64, n_down)
+
+
+    sample!(sites,R_up,replace=false)
+    leftover_sites = collect(setdiff(Set(sites),Set(R_up)))
+    sample!(leftover_sites,R_down,replace=false)
+
+    spin_configuration = make_spin_config(R_up,R_down)
+
+    # create list of neighbors which can be swapped in current configuration
+    bonds = get_init_bonds(lattice.graph,spin_configuration)
+
+    # get occupied wavefunctions from lattice and fermi energy
+    filled_states = get_Wavefunctions(model)
+
+    # calculate determinants
+    det_A_up = get_Determinant(R_up,filled_states)
+    det_A_down = get_Determinant(R_down,filled_states)
+
+    # calculate inverse matrices for A_up and A_down
+    A_inv_up = get_Inverse_Matrix(R_up,filled_states)
+    A_inv_down = get_Inverse_Matrix(R_down,filled_states)
+
+    # make the state object and return
+    state = GutzwillerState(R_up,R_down,spin_configuration,bonds, filled_states,
+                            det_A_up, det_A_down, A_inv_up,A_inv_down)
+    return state
+end
+
+""" Lower level functions """
+function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove
+    """ draw a random bond and return the two sites attached to that bond """
+    index = rand(1:ne(bonds))
+    edge = nth(edges(bonds),index) #nth is from IterTools
+    move_sites = (src(edge),dst(edge))
+    return SwapNeighborMove(move_sites)
 end
 
 function get_move_from_policy(chain::GutzwillerChain,policy::SwapNeighborsPolicy)::SwapNeighborMove
@@ -90,19 +154,13 @@ function get_move_from_policy(chain::GutzwillerChain,policy::SwapNeighborsPolicy
     return move
 end
 
-
-
-function update_state!(chain::GutzwillerChain,move)
-end
-
-
 function compute_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
-
     """ Computes transition amplitude"""
+
     state = get_State(chain)
     wavefunctions = state.wavefunctions
 
-    u, v = get_update_vectors(wavefunctions,move)
+    u, v = get_update_vectors(state,move)
     # note that u to update the down determinant is -u
     # that was used to update the up determinant since
     # u_i(r1-> r2) = ϕ_i(r2) - ϕi(r1)
@@ -137,101 +195,7 @@ function get_proposal_factor_ratio(chain::GutzwillerChain,move::SwapNeighborMove
 end
 
 
-count_bonds(graph::SimpleGraph{Int64}) = ne(graph)
-
-function get_updated_bonds(chain::GutzwillerChain,move::SwapNeighborMove)::SimpleGraph{Int64}
-    """ Returns a new graph object with the bonds of the updated state"""
-    state = get_State(chain)
-    model = get_Model(chain)
-    lattice = model["lattice"]
-
-    sc = deepcopy(state.spin_config.sc)
-    bonds = deepcopy(state.bonds)
-    sc[move.sites[1]], sc[move.sites[2]] = sc[move.sites[2]], sc[move.sites[1]]
-
-    for site in move.sites
-        for neighbor in neighbors(lattice.graph,site)
-            if sc[site] == sc[neighbor]
-                rem_edge!(bonds,site,neighbor)
-            else
-                add_edge!(bonds,site,neighbor)
-            end
-        end
-    end
-    return bonds
-end
-
-
-
-function get_init_state(chain::GutzwillerChain)::GutzwillerState
-    # get all the model information from the chain object
-    model = get_Model(chain)
-    lattice = model["lattice"]
-    filling = model["filling"]
-    fermi_energy = model["fermi_energy"]
-    hamiltonian = model["hamiltonian"]
-    dims = model["dims"]
-
-    # Distribute electrons over the sites of the lattice
-    num_sites = prod(dims)
-    sites = collect(1:num_sites)
-
-    # for now just assume filling = 1 and paramagnetic state
-    # later i can add functionality for magnetic states
-    # or states with holes
-    n_up = Int(num_sites*filling/2)
-    n_down = Int(num_sites*filling/2)
-
-    # vectors to store the location of the up and down electrons
-    R_up = zeros(Int64, n_up)
-    R_down = zeros(Int64, n_down)
-
-
-    sample!(sites,R_up,replace=false)
-    leftover_sites = collect(setdiff(Set(sites),Set(R_up)))
-    sample!(leftover_sites,R_down,replace=false)
-
-    spin_configuration = get_spin_config(R_up,R_down)
-
-    # create list of neighbors which can be swapped in current configuration
-    bonds = get_init_bonds(lattice.graph,spin_configuration)
-
-    # get occupied wavefunctions from lattice and fermi energy
-    filled_states = get_Wavefunctions(model)
-
-    # calculate determinants
-    det_A_up = get_Determinant(R_up,filled_states)
-    det_A_down = get_Determinant(R_down,filled_states)
-
-    # calculate inverse matrices for A_up and A_down
-    A_inv_up = get_Inverse_Matrix(R_up,filled_states)
-    A_inv_down = get_Inverse_Matrix(R_down,filled_states)
-
-    # make the state object and return
-    state = GutzwillerState(R_up,R_down,spin_configuration,bonds, filled_states,
-                            det_A_up, det_A_down, A_inv_up,A_inv_down)
-    return state
-end
-
-function get_Wavefunctions(model::Dict)::Array
-    lattice = model["lattice"]
-    fermi_energy = model["fermi_energy"]
-    hamiltonian = model["hamiltonian"]
-    # calculate the determinants of the up and down spin matrices
-    EO = hamiltonian(lattice) # eigen object
-    wavefunctions = EO.vectors # wavefunctions[i,j] =   ϕ_j(r_i)
-    eigenvalues = EO.values
-    filled_mask = eigenvalues.<fermi_energy # find index of filled wavefunctions
-    filled_states = wavefunctions[:,filled_mask] # ϕ_{ϵ(j) < ϵ_f} (r_i)
-end
-
-
-
-
-
-
-
-function get_spin_config(R_up,R_down)::SpinConfiguration
+function make_spin_config(R_up,R_down)::SpinConfiguration
     nsites = length([R_up R_down])
     sc = zeros(Int64,nsites)
     sc[R_up] .= +1
@@ -263,19 +227,9 @@ function get_init_bonds(
     return bonds
 end
 
-function get_Determinant(r,states)
-    """ Form the matrix ϕ(r_i, k_j) and calculate its determinant
-    this is not entirely general, could stand to make it
-    more modular. different models could have different wavefunctions """
-    mat = states[r,:]
-    return det(mat)
-end
 
-function get_Inverse_Matrix(r,states)
-    """ Compute the inverse of the matrix ϕ(r_i, k_j) """
-    mat = states[r,:]
-    return inv(mat)
-end
+
+
 
 
 
