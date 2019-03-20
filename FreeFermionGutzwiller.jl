@@ -38,6 +38,8 @@ mutable struct GutzwillerChain <: AbstractChain
 end
 get_MarkovChain(c::GutzwillerChain) = c.basechain
 
+struct GutzwillerObservable <: AbstractObservable
+end
 
 struct SpinConfiguration
     sc::Array
@@ -47,7 +49,7 @@ struct SwapNeighborMove <: SwapMove
     sites::Tuple
 end
 
-struct SwapNeighborsPolicy <: AbstractPolicy
+struct SwapNeighborsPolicy <: FreeFermionGutzwillerPolicy
 end
 
 

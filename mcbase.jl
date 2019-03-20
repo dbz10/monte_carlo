@@ -67,7 +67,7 @@ function init_Chain!(
     chain.basechain.state = get_init_state(chain)
     chain.basechain.policy = policy
     chain.basechain.mc_spec = mc_spec
-    chain.basechain.data = observable(chain)
-    chain.basechain.diagnostics = get_init_diagnostics(policy)
+    # chain.basechain.data = observable(chain)
+    # chain.basechain.diagnostics = get_init_diagnostics(policy)
     chain.basechain.observable = observable
 end
