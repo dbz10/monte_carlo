@@ -19,15 +19,14 @@
 module FreeFermionGutzwiller
 
 include("mcbase.jl")
-include("FFGmath.jl")
-include("FFGhelpers.jl")
+
 
 using StatsBase: sample, sample!
 using IterTools: nth
 using LightGraphs:
     SimpleGraph, edges, src, dst, rem_edge!, add_edge!, neighbors,
-    adjacency_matrix, ne
-using LinearAlgebra: dot, det, inv, eigen
+    adjacency_matrix, ne, nv
+using LinearAlgebra: dot, det, inv, eigen, cond
 
 # abstract type definitions
 abstract type FreeFermionGutzwillerPolicy <: AbstractPolicy end
@@ -53,9 +52,10 @@ end
 struct SwapNeighborsPolicy <: FreeFermionGutzwillerPolicy
 end
 
-struct GutzwillerState <: AbstractState
+mutable struct GutzwillerState <: AbstractState
      r_up::Array{Int64} # position of spin up electrons
      r_down::Array{Int64} # position of spin down electrons
+     business_directory::Array{Int64} # map from site to electron index.
      spin_config::SpinConfiguration # a map of the spin configuration onto the graph
      bonds::SimpleGraph{Int64} # which bonds have disaligned spins
      wavefunctions::Array # wavefunctions ϕ_j(r_i) where ϵ_j < ϵ_fermi
@@ -64,6 +64,10 @@ struct GutzwillerState <: AbstractState
      A_inv_up::Array
      A_inv_down::Array
 end
+
+# Load in helper functions
+include("FFGmath.jl")
+include("FFGhelpers.jl")
 
 """ High level functions """
 function get_Move(chain::GutzwillerChain)
@@ -74,7 +78,77 @@ function get_Move(chain::GutzwillerChain)
 end
 
 function update_state!(chain::GutzwillerChain,move)
+    """ Annoyingly, the order in which things are updated is important.
+    In particular, update_Rs! needs the current business directory and
+    update_Bonds! needs the current spin config"""
+    state = get_State(chain)
+    update_Rs!(state,move)
+    update_Bonds!(chain,move)
+    update_Determinants!(chain,move)
+    update_Inverses!(state,move)
+    update_Spin_config!(state,move)
+    update_Business_directory!(state,move) # important that BD is updated last
 end
+
+function update_Rs!(state::GutzwillerState,move::SwapNeighborMove)
+    r_up = state.r_up
+    r_down = state.r_down
+    bd = state.business_directory
+    # use bd to find what electrons are being exchanged
+    l1, l2 = move.sites[1], move.sites[2]
+    electron_A = bd[l1]
+    electron_B = bd[l2]
+
+    if electron_B > electron_A # then A is spin up and B is spin down
+        electron_B = get_electron_index(electron_B,state)
+        r_up[electron_A] = l2
+        r_down[electron_B] = l1
+    else # A is down and B is up
+        electron_A = get_electron_index(electron_A,state)
+        r_down[electron_A] = l2
+        r_up[electron_B] = l1
+    end
+end
+
+function update_Spin_config!(state::GutzwillerState,move::SwapNeighborMove)
+    sc = state.spin_config.sc
+    l1 = move.sites[1]
+    l2 = move.sites[2]
+    sc[l1], sc[l2] = sc[l2], sc[l1]
+end
+
+function update_Bonds!(chain::GutzwillerChain,move::SwapNeighborMove)
+    state = get_State(chain)
+    tmp = get_updated_bonds(chain,move)
+    bonds = state.bonds
+    bonds = tmp
+end
+
+function update_Determinants!(chain::GutzwillerChain,move::SwapNeighborMove)
+    state = get_State(chain)
+    trash, det_ratio_up, det_ratio_down = compute_ratio(chain,move)
+    state.det_A_up *= det_ratio_up
+    state.det_A_down *= det_ratio_down
+end
+
+function update_Inverses!(state::GutzwillerState,move::SwapNeighborMove)
+    u1,v1,u2,v2 = get_update_vectors(state,move)
+    # recall u1 v1 are for up, u2 v2 are for down
+    t = sherman_morrison_inverse_update(state.A_inv_up,u1,v1)
+    r = sherman_morrison_inverse_update(state.A_inv_down,u2,v2)
+
+    state.A_inv_up = t
+    state.A_inv_down = r
+end
+
+function update_Business_directory!(state::GutzwillerState,move::SwapNeighborMove)
+    bd = state.business_directory
+    l1 = move.sites[1]
+    l2 = move.sites[2]
+    bd[l1], bd[l2] = bd[l2], bd[l1]
+end
+
+
 
 function get_Wavefunctions(model::Dict)::Array
     lattice = model["lattice"]
@@ -107,22 +181,21 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     n_up = Int(num_sites*filling/2)
     n_down = Int(num_sites*filling/2)
 
-    # vectors to store the location of the up and down electrons
-    R_up = zeros(Int64, n_up)
-    R_down = zeros(Int64, n_down)
+    # find a well conditioned initial state
+    conditioning_tol = 10^6
 
+    R_up, R_down, filled_states = get_conditioned_state(
+        n_up,n_down,
+        model,conditioning_tol)
 
-    sample!(sites,R_up,replace=false)
-    leftover_sites = collect(setdiff(Set(sites),Set(R_up)))
-    sample!(leftover_sites,R_down,replace=false)
+    # make the business directory
+    business_directory = make_business_directory(R_up,R_down)
 
+    # make the spin configuration
     spin_configuration = make_spin_config(R_up,R_down)
 
     # create list of neighbors which can be swapped in current configuration
     bonds = get_init_bonds(lattice.graph,spin_configuration)
-
-    # get occupied wavefunctions from lattice and fermi energy
-    filled_states = get_Wavefunctions(model)
 
     # calculate determinants
     det_A_up = get_Determinant(R_up,filled_states)
@@ -133,12 +206,17 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     A_inv_down = get_Inverse_Matrix(R_down,filled_states)
 
     # make the state object and return
-    state = GutzwillerState(R_up,R_down,spin_configuration,bonds, filled_states,
-                            det_A_up, det_A_down, A_inv_up,A_inv_down)
+    state = GutzwillerState(
+        R_up,R_down, business_directory, spin_configuration,bonds,
+        filled_states, det_A_up, det_A_down, A_inv_up,A_inv_down
+        )
     return state
 end
 
 """ Lower level functions """
+
+
+
 function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove
     """ draw a random bond and return the two sites attached to that bond """
     index = rand(1:ne(bonds))
@@ -155,45 +233,31 @@ function get_move_from_policy(chain::GutzwillerChain,policy::SwapNeighborsPolicy
 end
 
 function compute_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
-    """ Computes transition amplitude"""
-
+    """ Computes transition amplitude. Returns transition amplitude,
+    det_ratio_up, det_ratio_down. First return argument must always be ratio"""
     state = get_State(chain)
     wavefunctions = state.wavefunctions
 
-    u, v = get_update_vectors(state,move)
-    # note that u to update the down determinant is -u
-    # that was used to update the up determinant since
-    # u_i(r1-> r2) = ϕ_i(r2) - ϕi(r1)
-    # hence u_i(r2-> r1) = -u_i(r1-> r2)
+    # update vectors for up spin determinant (1) and down spin determinant (2)
+    u1, v1, u2, v2 = get_update_vectors(state,move)
 
-    # up and down electrons have same wavefunction.
-    # we do need to figure out whether move[1] is
-    # an up or down spin though
-    spin_A = get_spin_of_site(state,move[1])
-
-    if spin_A == +1
-        det_ratio_up = det_ratio_factor(state.A_inv_up,u,v)
-        det_ratio_down = det_ratio_factor(state.A_inv_down,-u,v)
-    else
-        det_ratio_up = det_ratio_factor(state.A_inv_up,-u,v)
-        det_ratio_down = det_ratio_factor(state.A_inv_down,u,v)
-    end
+    det_ratio_up = det_ratio_factor(state.A_inv_up,u1,v1)
+    det_ratio_down = det_ratio_factor(state.A_inv_down,u2,v2)
 
     # we also need the ratio of proposal factors
     pf_ratio = get_proposal_factor_ratio(chain,move)
 
-    return ratio_up*ratio_down*pf_ratio
+    return det_ratio_up*det_ratio_down*pf_ratio, det_ratio_up, det_ratio_down
 end
 
 function get_proposal_factor_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
     state = get_State(chain)
     bonds = state.bonds
-    configuration_factor_old = count_bonds(bonds)
-    new_bonds = get_updated_bonds(state,move)
-    configuration_factor_new = count_bonds(new_bonds)
-    return configuration_factor_new/configuration_factor_old
+    configuration_factor_forwards = 1.0/count_bonds(bonds)
+    new_bonds = get_updated_bonds(chain,move)
+    configuration_factor_backwards = 1.0/count_bonds(new_bonds)
+    return configuration_factor_backwards/configuration_factor_forwards
 end
-
 
 function make_spin_config(R_up,R_down)::SpinConfiguration
     nsites = length([R_up R_down])
@@ -227,11 +291,13 @@ function get_init_bonds(
     return bonds
 end
 
-
-
-
-
-
-
+function make_business_directory(r_up::Array,r_down::Array)::Array
+    """ Makes the directory for the lattice. The i'th element
+    is the index of the electron living on site i. indices <= N/2
+    refer to up spins and indices > N/2 refer to down spins """
+    r_full = [r_up ; r_down]
+    sortkey = sortperm(r_full)
+    return sortkey
+end
 
 end

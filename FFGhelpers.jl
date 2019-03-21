@@ -23,3 +23,35 @@ function get_updated_bonds(chain::GutzwillerChain,move::SwapNeighborMove)::Simpl
     end
     return bonds
 end
+
+function get_electron_index(site::Int64,state::GutzwillerState)::Int64
+    ns = length(state.business_directory)
+    return ((site-1) % (ns/2)) + 1
+end
+
+function get_conditioned_state(
+    n_up,n_down,
+    model,conditioning_tol=10^6
+    )
+    sites = collect(1:n_up+n_down)
+    cc_up = 2*conditioning_tol
+    cc_down = 2*conditioning_tol
+    while (cc_up > conditioning_tol  || cc_down > conditioning_tol)
+        # vectors to store the location of the up and down electrons
+        R_up = zeros(Int64, n_up)
+        R_down = zeros(Int64, n_down)
+        sample!(sites,R_up,replace=false)
+        leftover_sites = collect(setdiff(Set(sites),Set(R_up)))
+        sample!(leftover_sites,R_down,replace=false)
+
+                # get occupied wavefunctions from lattice and fermi energy
+        filled_states = get_Wavefunctions(model)
+
+        cc_up = cond(filled_states[R_up,:])
+        cc_down = cond(filled_states[R_down,:])
+
+        if (cc_up < conditioning_tol && cc_down < conditioning_tol)
+            return R_up, R_down, filled_states
+        end
+    end
+end

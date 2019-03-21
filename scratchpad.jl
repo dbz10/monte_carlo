@@ -50,18 +50,9 @@ move=FreeFermionGutzwiller.get_Move(gutz)
 updated_bonds = FreeFermionGutzwiller.get_updated_bonds(gutz,move)
 gplot(updated_bonds,nodelabel=collect(1:nv(lattice.graph)))
 
-print(state.spin_config.sc)
+print(move.sites,"\n")
+print(FreeFermionGutzwiller.get_State(gutz).spin_config.sc)
 
+FreeFermionGutzwiller.update_state!(gutz,move)
 
-m1 = rand(2,2)
-m2 = rand(2,2)
-
-m1_inv = inv(m1)
-
-@show m1
-@show m2
-
-u = [1,0]
-v = m2[1,:]
-
-u*v'
+print(FreeFermionGutzwiller.get_State(gutz).spin_config.sc)
