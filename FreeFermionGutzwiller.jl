@@ -157,13 +157,7 @@ end
 
 """ Lower level functions """
 
-function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove
-    """ draw a random bond and return the two sites attached to that bond """
-    index = rand(1:ne(bonds))
-    edge = nth(edges(bonds),index) #nth is from IterTools
-    move_sites = (src(edge),dst(edge))
-    return SwapNeighborMove(move_sites)
-end
+
 
 function get_move_from_policy(chain::GutzwillerChain,policy::SwapNeighborsPolicy)::SwapNeighborMove
     """ Specific function for gutzwiller chain with swap neighbor policy"""

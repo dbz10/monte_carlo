@@ -122,3 +122,11 @@ function make_business_directory(r_up::Array,r_down::Array)::Array
     sortkey = sortperm(r_full)
     return sortkey
 end
+
+function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove
+    """ draw a random bond and return the two sites attached to that bond """
+    index = rand(1:ne(bonds))
+    edge = nth(edges(bonds),index) #nth is from IterTools
+    move_sites = (src(edge),dst(edge))
+    return SwapNeighborMove(move_sites)
+end
