@@ -90,67 +90,9 @@ function update_state!(chain::GutzwillerChain,move)
     update_Business_directory!(state,move) # important that BD is updated last
 end
 
-function update_Rs!(state::GutzwillerState,move::SwapNeighborMove)
-    r_up = state.r_up
-    r_down = state.r_down
-    bd = state.business_directory
-    # use bd to find what electrons are being exchanged
-    l1, l2 = move.sites[1], move.sites[2]
-    electron_A = bd[l1]
-    electron_B = bd[l2]
-
-    if electron_B > electron_A # then A is spin up and B is spin down
-        electron_B = get_electron_index(electron_B,state)
-        r_up[electron_A] = l2
-        r_down[electron_B] = l1
-    else # A is down and B is up
-        electron_A = get_electron_index(electron_A,state)
-        r_down[electron_A] = l2
-        r_up[electron_B] = l1
-    end
-end
-
-function update_Spin_config!(state::GutzwillerState,move::SwapNeighborMove)
-    sc = state.spin_config.sc
-    l1 = move.sites[1]
-    l2 = move.sites[2]
-    sc[l1], sc[l2] = sc[l2], sc[l1]
-end
-
-function update_Bonds!(chain::GutzwillerChain,move::SwapNeighborMove)
-    state = get_State(chain)
-    tmp = get_updated_bonds(chain,move)
-    bonds = state.bonds
-    bonds = tmp
-end
-
-function update_Determinants!(chain::GutzwillerChain,move::SwapNeighborMove)
-    state = get_State(chain)
-    trash, det_ratio_up, det_ratio_down = compute_ratio(chain,move)
-    state.det_A_up *= det_ratio_up
-    state.det_A_down *= det_ratio_down
-end
-
-function update_Inverses!(state::GutzwillerState,move::SwapNeighborMove)
-    u1,v1,u2,v2 = get_update_vectors(state,move)
-    # recall u1 v1 are for up, u2 v2 are for down
-    t = sherman_morrison_inverse_update(state.A_inv_up,u1,v1)
-    r = sherman_morrison_inverse_update(state.A_inv_down,u2,v2)
-
-    state.A_inv_up = t
-    state.A_inv_down = r
-end
-
-function update_Business_directory!(state::GutzwillerState,move::SwapNeighborMove)
-    bd = state.business_directory
-    l1 = move.sites[1]
-    l2 = move.sites[2]
-    bd[l1], bd[l2] = bd[l2], bd[l1]
-end
-
-
-
-function get_Wavefunctions(model::Dict)::Array
+function get_Wavefunctions(chain::GutzwillerChain)::Array
+    """ This is specific to the model, so it is here and not in MCbase """
+    model = get_Model(chain)
     lattice = model["lattice"]
     fermi_energy = model["fermi_energy"]
     hamiltonian = model["hamiltonian"]
@@ -214,8 +156,6 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
 end
 
 """ Lower level functions """
-
-
 
 function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove
     """ draw a random bond and return the two sites attached to that bond """
@@ -289,15 +229,6 @@ function get_init_bonds(
     end
 
     return bonds
-end
-
-function make_business_directory(r_up::Array,r_down::Array)::Array
-    """ Makes the directory for the lattice. The i'th element
-    is the index of the electron living on site i. indices <= N/2
-    refer to up spins and indices > N/2 refer to down spins """
-    r_full = [r_up ; r_down]
-    sortkey = sortperm(r_full)
-    return sortkey
 end
 
 end

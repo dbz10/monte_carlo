@@ -51,8 +51,8 @@ updated_bonds = FreeFermionGutzwiller.get_updated_bonds(gutz,move)
 gplot(updated_bonds,nodelabel=collect(1:nv(lattice.graph)))
 
 print(move.sites,"\n")
-print(FreeFermionGutzwiller.get_State(gutz).spin_config.sc)
+print(FreeFermionGutzwiller.get_State(gutz),"\n\n")
 
 FreeFermionGutzwiller.update_state!(gutz,move)
 
-print(FreeFermionGutzwiller.get_State(gutz).spin_config.sc)
+print(FreeFermionGutzwiller.get_State(gutz))
