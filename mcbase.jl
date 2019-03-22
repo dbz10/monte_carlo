@@ -35,11 +35,10 @@ get_Data(c::AbstractChain) = get_MarkovChain(c).data
 function runMC!(chain::AbstractChain)
     mc_specs = get_mc_specs(chain)
     NUM_MC_STEPS = mc_specs["num_mc_steps"]
-    NUM_MC_WARMUP_STEPS = mc_specs["num_mc_warmup_steps"]
     SAMPLE_INTERVAL = mc_specs["sample_interval"]
 
     # run burn in steps
-    do_warmup(chain,NUM_MC_WARMUP_STEPS)
+    do_warmup!(chain)
 
     # carry out monte carlo sampling of observable
     for i = 1:NUM_MC_STEPS
@@ -68,18 +67,34 @@ function init_Chain!(
     chain.basechain.policy = policy
     chain.basechain.mc_spec = mc_spec
     chain.basechain.data = observable(chain)
-    # chain.basechain.diagnostics = get_init_diagnostics(policy)
+    chain.basechain.diagnostics = get_init_diagnostics(chain)
     chain.basechain.observable = observable
 end
+
+function do_move!(chain)
+    move = get_Move(chain)
+    process_move!(chain,move)
+end
+
+# recursion for warmup
+repeatf(fn, x, n) = n == 1 ? fn(x) : repeatf(fn, fn(x), n-1)
+
+function do_warmup!(chain)
+    mc_specs = get_Mc_Spec(chain)
+    num_mc_warmup_steps = mc_specs["mc_warmup_steps"]
+    for i = 1:num_mc_warmup_steps
+        do_move!(chain)
+    end
+end
+
+
 
 
 function process_move!(chain,move)
     """ Get the ratio for the proposed move
     and decide whether to accept or reject"""
-    state = get_State(chain)
-    ratio, extras = compute_ratio(state,move) # extras is an optional
+    ratio, extras = compute_ratio(chain,move) # extras is an optional
     # model based extra return
-    if ratio > rand()
-        update_state!(chain,move,extras=extras)
-    end
+    ACCEPT =  ratio > rand()
+    update_chain!(ACCEPT,chain,move,extras=extras)
 end

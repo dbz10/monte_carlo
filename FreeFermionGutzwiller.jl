@@ -40,6 +40,9 @@ end
 
 get_MarkovChain(c::GutzwillerChain) = c.basechain
 
+struct InvalidLatticeError <: Exception
+    var::Symbol
+end
 
 struct SpinConfiguration
     """ This is borderline pointless, it's just a typed array"""
@@ -78,17 +81,21 @@ function get_Move(chain::GutzwillerChain)
     return move
 end
 
-function update_state!(chain::GutzwillerChain, move ; extras=nothing)
+function update_chain!(
+        accept::Bool, chain::GutzwillerChain, move ; extras=nothing)
     """ Annoyingly, the order in which things are updated is important.
     In particular, update_Rs! needs the current business directory and
     update_Bonds! needs the current spin config"""
-    state = get_State(chain)
-    update_Rs!(state,move)
-    update_Bonds!(chain,move)
-    update_Determinants!(chain,move,extras)
-    update_Inverses!(state,move)
-    update_Spin_config!(state,move)
-    update_Business_directory!(state,move) # important that BD is updated last
+    if accept
+        state = get_State(chain)
+        update_Rs!(state,move)
+        update_Bonds!(chain,move)
+        update_Determinants!(chain,move,extras)
+        update_Inverses!(state,move)
+        update_Spin_config!(state,move)
+        update_Business_directory!(state,move) # important that BD is updated last
+    end
+    update_Diagnostics!(chain,accept)
 end
 
 function get_Wavefunctions(chain::GutzwillerChain)::Array
@@ -103,6 +110,15 @@ function get_Wavefunctions(chain::GutzwillerChain)::Array
     eigenvalues = EO.values
     filled_mask = eigenvalues.<fermi_energy # find index of filled wavefunctions
     filled_states = wavefunctions[:,filled_mask] # ϕ_{ϵ(j) < ϵ_f} (r_i)
+
+    # if ef = 0 then we need to just manually select the first N/2 states
+    # since there are usually degenerate states at energy 0
+    if fermi_energy == 0
+        half = Int64(length(eigenvalues)/2)
+        filled_states = wavefunctions[:,1:half]
+    end
+
+    return filled_states
 end
 
 function get_init_state(chain::GutzwillerChain)::GutzwillerState
@@ -113,6 +129,8 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     fermi_energy = model["fermi_energy"]
     hamiltonian = model["hamiltonian"]
     dims = model["dims"]
+
+    filled_states = get_Wavefunctions(chain)
 
     # Distribute electrons over the sites of the lattice
     num_sites = prod(dims)
@@ -129,6 +147,10 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
 
     R_up, R_down, filled_states = get_conditioned_state(
         chain,n_up,n_down, conditioning_tol)
+
+    # check whether filling is compatible with # states less than fermi energy
+    @assert isacceptablelattice(filled_states,filling) "Lattice not playing well with filling,
+         # please try different dimensions"
 
     # make the business directory
     business_directory = make_business_directory(R_up,R_down)
@@ -155,8 +177,25 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     return state
 end
 
+function get_init_diagnostics(chain::GutzwillerChain)::Dict
+    d0 = Dict("mc_steps" => 0,
+            "accepted_moves" => 0)
+    return d0
+end
+
 """ Lower level functions """
 
+function isacceptablelattice(filled_states,filling)::Bool
+    """ Checks whether filled states is a square matrix """
+    return Int64(size(filled_states)[1]*filling/2) == size(filled_states)[2]
+end
+
+
+function update_Diagnostics!(chain::GutzwillerChain,accept::Bool)
+    diag = get_Diagnostics(chain)
+    diag["mc_steps"] += 1
+    diag["accepted_moves"] += Int64(accept)
+end
 
 
 function get_move_from_policy(chain::GutzwillerChain,policy::SwapNeighborsPolicy)::SwapNeighborMove

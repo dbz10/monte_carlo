@@ -96,7 +96,6 @@ function update_Determinants!(chain::GutzwillerChain,move::SwapNeighborMove,extr
     if isnothing(extras)
         trash, extras = compute_ratio(chain,move)
     end
-    print(extras)
     det_ratio_up = extras[1]
     det_ratio_down = extras[2]
     state.det_A_up *= det_ratio_up

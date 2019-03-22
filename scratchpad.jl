@@ -26,14 +26,15 @@ model = Dict(
 
 function observable(chain::FreeFermionGutzwiller.GutzwillerChain)
     state = FreeFermionGutzwiller.get_State(chain)
-    thingy = state.spin_config.sc[1]
-    data = Dict("Sz1" => thingy)
+    Sz1Sz2 = state.spin_config.sc[1]*state.spin_config.sc[2]
+    data = Dict("Sz1Sz2" => Sz1Sz2)
     return data
 end
 
 
 policy = FreeFermionGutzwiller.SwapNeighborsPolicy()
-mc_spec = Dict("mc_steps" => 1)
+mc_spec = Dict("mc_steps" => 1,
+                "mc_warmup_steps" => 5)
 
 # gplot(lattice.graph, nodelabel = 1:nv(lattice.graph))
 gutz = FreeFermionGutzwiller.GutzwillerChain()
@@ -42,17 +43,8 @@ FreeFermionGutzwiller.init_Chain!(gutz,
         model=model,observable=observable,policy=policy,mc_spec=mc_spec
         )
 
-state = FreeFermionGutzwiller.get_State(gutz)
-gplot(state.bonds,nodelabel=collect(1:nv(lattice.graph)))
+FreeFermionGutzwiller.do_warmup!(gutz)
 
+test = (5 > 3)
 
-move=FreeFermionGutzwiller.get_Move(gutz)
-updated_bonds = FreeFermionGutzwiller.get_updated_bonds(gutz,move)
-gplot(updated_bonds,nodelabel=collect(1:nv(lattice.graph)))
-
-print(move.sites,"\n")
-print(FreeFermionGutzwiller.get_State(gutz),"\n\n")
-
-FreeFermionGutzwiller.update_state!(gutz,move)
-
-print(FreeFermionGutzwiller.get_State(gutz))
+Int64(false)
