@@ -8,9 +8,10 @@ using IterTools
 
 
 
+
 # define a model
-dims = (2,3) # dimension of the lattice
-lattice = Lattices.get_SquareLattice(dims,false) # make a square lattice
+dims = (16,16) # dimension of the lattice
+lattice = Lattices.get_SquareLattice(dims,true) # make a square lattice
 filling = 1 # setting filling ≢ 1 means there are holes.
 
 
@@ -34,7 +35,7 @@ end
 
 policy = FreeFermionGutzwiller.SwapNeighborsPolicy()
 mc_spec = Dict("mc_steps" => 1,
-                "mc_warmup_steps" => 5)
+                "mc_warmup_steps" => 1E3)
 
 # gplot(lattice.graph, nodelabel = 1:nv(lattice.graph))
 gutz = FreeFermionGutzwiller.GutzwillerChain()
@@ -43,8 +44,6 @@ FreeFermionGutzwiller.init_Chain!(gutz,
         model=model,observable=observable,policy=policy,mc_spec=mc_spec
         )
 
-FreeFermionGutzwiller.do_warmup!(gutz)
+@time FreeFermionGutzwiller.do_warmup!(gutz)
 
-test = (5 > 3)
-
-Int64(false)
+FreeFermionGutzwiller.get_Diagnostics(gutz)

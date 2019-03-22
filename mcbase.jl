@@ -55,6 +55,9 @@ end
 
 # measures a generic observable
 function measure_observable!(chain::AbstractChain)
+    observable = get_Observable(chain)
+    data = get_Data(chain)
+
 end
 
 """ Initialize a markov chain """
@@ -77,7 +80,6 @@ function do_move!(chain)
 end
 
 # recursion for warmup
-repeatf(fn, x, n) = n == 1 ? fn(x) : repeatf(fn, fn(x), n-1)
 
 function do_warmup!(chain)
     mc_specs = get_Mc_Spec(chain)
