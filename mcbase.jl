@@ -77,8 +77,9 @@ function process_move!(chain,move)
     """ Get the ratio for the proposed move
     and decide whether to accept or reject"""
     state = get_State(chain)
-    ratio, = compute_ratio(state,move)
+    ratio, extras = compute_ratio(state,move) # extras is an optional
+    # model based extra return
     if ratio > rand()
-        update_state!(chain,move)
+        update_state!(chain,move,extras=extras)
     end
 end

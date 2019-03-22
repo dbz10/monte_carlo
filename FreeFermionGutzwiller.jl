@@ -37,6 +37,7 @@ mutable struct GutzwillerChain <: AbstractChain
     basechain::MarkovChain
     GutzwillerChain() = new()
 end
+
 get_MarkovChain(c::GutzwillerChain) = c.basechain
 
 
@@ -77,14 +78,14 @@ function get_Move(chain::GutzwillerChain)
     return move
 end
 
-function update_state!(chain::GutzwillerChain,move)
+function update_state!(chain::GutzwillerChain, move ; extras=nothing)
     """ Annoyingly, the order in which things are updated is important.
     In particular, update_Rs! needs the current business directory and
     update_Bonds! needs the current spin config"""
     state = get_State(chain)
     update_Rs!(state,move)
     update_Bonds!(chain,move)
-    update_Determinants!(chain,move)
+    update_Determinants!(chain,move,extras)
     update_Inverses!(state,move)
     update_Spin_config!(state,move)
     update_Business_directory!(state,move) # important that BD is updated last
@@ -127,8 +128,7 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     conditioning_tol = 10^6
 
     R_up, R_down, filled_states = get_conditioned_state(
-        n_up,n_down,
-        model,conditioning_tol)
+        chain,n_up,n_down, conditioning_tol)
 
     # make the business directory
     business_directory = make_business_directory(R_up,R_down)
@@ -181,7 +181,7 @@ function compute_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
     # we also need the ratio of proposal factors
     pf_ratio = get_proposal_factor_ratio(chain,move)
 
-    return det_ratio_up*det_ratio_down*pf_ratio, det_ratio_up, det_ratio_down
+    return det_ratio_up*det_ratio_down*pf_ratio, (det_ratio_up, det_ratio_down)
 end
 
 function get_proposal_factor_ratio(chain::GutzwillerChain,move::SwapNeighborMove)

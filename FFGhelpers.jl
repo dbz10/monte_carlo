@@ -30,9 +30,7 @@ function get_electron_index(site::Int64,state::GutzwillerState)::Int64
 end
 
 function get_conditioned_state(
-    n_up,n_down,
-    model,conditioning_tol=10^6
-    )
+    chain, n_up,n_down, conditioning_tol=10^6)
     sites = collect(1:n_up+n_down)
     cc_up = 2*conditioning_tol
     cc_down = 2*conditioning_tol
@@ -45,7 +43,7 @@ function get_conditioned_state(
         sample!(leftover_sites,R_down,replace=false)
 
                 # get occupied wavefunctions from lattice and fermi energy
-        filled_states = get_Wavefunctions(model)
+        filled_states = get_Wavefunctions(chain)
 
         cc_up = cond(filled_states[R_up,:])
         cc_down = cond(filled_states[R_down,:])
@@ -90,9 +88,17 @@ function update_Bonds!(chain::GutzwillerChain,move::SwapNeighborMove)
     bonds = tmp
 end
 
-function update_Determinants!(chain::GutzwillerChain,move::SwapNeighborMove)
+function update_Determinants!(chain::GutzwillerChain,move::SwapNeighborMove,extras)
+    # extras contains det_ratio_up and det_ratio_down
+
     state = get_State(chain)
-    trash, det_ratio_up, det_ratio_down = compute_ratio(chain,move)
+
+    if isnothing(extras)
+        trash, extras = compute_ratio(chain,move)
+    end
+    print(extras)
+    det_ratio_up = extras[1]
+    det_ratio_down = extras[2]
     state.det_A_up *= det_ratio_up
     state.det_A_down *= det_ratio_down
 end
