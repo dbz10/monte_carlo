@@ -56,8 +56,8 @@ end
 # measures a generic observable
 function measure_observable!(chain::AbstractChain)
     observable = get_Observable(chain)
-    data = get_Data(chain)
-
+    result = observable(chain)
+    update_data!(chain,result)
 end
 
 """ Initialize a markov chain """

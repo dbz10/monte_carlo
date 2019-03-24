@@ -11,12 +11,23 @@ lattice = Lattices.get_SquareLattice(dims) # make a square lattice
 observable = FreeFermionGutzwiller.observe_Swap()
 filling = 1 # setting filling ≢ 1 means there are holes.
 
+
+function Sz1Szj(chain::FreeFermionGutzwiller.GutzwillerChain)
+    state = get_State(chain)
+    model = get_Model(chain)
+    nsites = prod(model.dims)
+    Sz1Szj = [state.spin_config.sc[1]*state.spin_config.sc[j] for j in 1:nsites]
+    data = Dict("Sz1Szj" => Sz1Szj)
+    return data
+end
+
+
 model = Dict(
     "dims" => dims,
     "lattice" => lattice,
-    "observable" => observable,
+    "observable" => Sz1Szj,
     "filling" => filling,
-    "hamiltonian" => FreeFermionGutzwiller.tight_binding_dispersion
+    "hamiltonian" => Lattices.get_Tightbinding_Wavefunctions,
 )
 
 # Policy
@@ -29,13 +40,6 @@ mc_specs = Dict(
     "sample_interval" => Int(1e1),
     "num_times" => 5,
     )
-
-function observable(chain::FreeFermionGutzwiller.GutzwillerChain)
-    state = get_State(chain)
-    thingy = state.spin_config.sc[1]
-    data = Dict("Sz1" => thingy)
-    return data
-end
 
 
 

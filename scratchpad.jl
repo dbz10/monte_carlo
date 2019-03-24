@@ -47,3 +47,7 @@ FreeFermionGutzwiller.init_Chain!(gutz,
 @time FreeFermionGutzwiller.do_warmup!(gutz)
 
 FreeFermionGutzwiller.get_Diagnostics(gutz)
+
+prod(model["dims"])
+
+zeros(5)
