@@ -16,8 +16,7 @@ function get_update_vectors(state::GutzwillerState,move::SwapNeighborMove)
     """ Gets vectors which perform rank 1 row update to the slater determinant
     specifically, u is zero except at column i and v_i = ϕ_i(r') - ϕ_i(r)
     u1 and v1 are for up spin, and u2 and v2 are for down spin"""
-    # need the yellowbook here to know which electron is being moved.
-
+    # get electron indices from business directory
     bd = state.business_directory
 
     site_A = move.sites[1]
