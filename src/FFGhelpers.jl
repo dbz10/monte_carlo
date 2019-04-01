@@ -84,8 +84,7 @@ end
 function update_Bonds!(chain::GutzwillerChain,move::SwapNeighborMove)
     state = get_State(chain)
     tmp = get_updated_bonds(chain,move)
-    bonds = state.bonds
-    bonds = tmp
+    state.bonds = tmp
 end
 
 function update_Determinants!(chain::GutzwillerChain,move::SwapNeighborMove,extras)
@@ -134,4 +133,48 @@ function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove
     edge = nth(edges(bonds),index) #nth is from IterTools
     move_sites = (src(edge),dst(edge))
     return SwapNeighborMove(move_sites)
+end
+
+function get_update_vectors(state::GutzwillerState,move::SwapNeighborMove)
+    """ Gets vectors which perform rank 1 row update to the slater determinant
+    specifically, u is zero except at column i and v_i = ϕ_i(r') - ϕ_i(r)
+    u1 and v1 are for up spin, and u2 and v2 are for down spin"""
+    # get electron indices from business directory
+    bd = state.business_directory
+
+    site_A = move.sites[1]
+    site_B = move.sites[2]
+
+    electron_A = bd[site_A]
+    electron_B = bd[site_B]
+
+    u1 = zeros(length(state.r_up))
+    v1 = zeros(length(state.r_up))
+    u2 = zeros(length(state.r_down))
+    v2 = zeros(length(state.r_down))
+
+    if electron_A < electron_B
+        # then A is up (1) and B is down (2)
+        # up electron is moving from site A to site B
+        electron_A = get_electron_index(electron_A,state)
+        u1[electron_A] = 1
+        v1 = state.wavefunctions[site_B,:] - state.wavefunctions[site_A,:]
+
+        # down electron is moving from site B to site A
+        electron_B = get_electron_index(electron_B,state)
+        u2[electron_B] = 1
+        v2 = state.wavefunctions[site_A,:] - state.wavefunctions[site_B,:]
+
+    else
+        # A is down (2) and B is up (1)
+        electron_A = get_electron_index(electron_A,state)
+        u2[electron_A] = 1
+        v2 = state.wavefunctions[site_B,:] - state.wavefunctions[site_A,:]
+
+        electron_B = get_electron_index(electron_B,state)
+        u1[electron_B] = 1
+        v1 = state.wavefunctions[site_A,:] - state.wavefunctions[site_B,:]
+    end
+
+    return u1,v1,u2,v2
 end

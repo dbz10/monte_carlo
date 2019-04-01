@@ -19,7 +19,7 @@ struct SquareLattice <: Lattice
     lattice_vectors::Array{Int64}
 end
 
-function get_SquareLattice(dims,pbc=false)::SquareLattice
+function get_SquareLattice(dims;pbc=true)::SquareLattice
     graph = LightGraphs.Grid([d for d in dims],periodic=pbc)
     # lattice vectors for a d dimensional square lattice are just
     # v_i = \hat e_i

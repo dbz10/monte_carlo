@@ -10,12 +10,14 @@ using IterTools
 
 
 # define a model
-dims = (16,16) # dimension of the lattice
-lattice = Lattices.get_SquareLattice(dims,true) # make a square lattice
+dims = (2,3) # dimension of the lattice
+lattice = Lattices.get_SquareLattice(dims,pbc=true) # make a square lattice
 filling = 1 # setting filling ≢ 1 means there are holes.
 
 
 gplot(lattice.graph,nodelabel=collect(1:nv(lattice.graph)))
+
+Lattices.get_Tightbinding_Wavefunctions(lattice)
 
 model = Dict(
     "dims" => dims,

@@ -190,13 +190,11 @@ function isacceptablelattice(filled_states,filling)::Bool
     return Int64(size(filled_states)[1]*filling/2) == size(filled_states)[2]
 end
 
-
 function update_Diagnostics!(chain::GutzwillerChain,accept::Bool)
     diag = get_Diagnostics(chain)
     diag["mc_steps"] += 1
     diag["accepted_moves"] += Int64(accept)
 end
-
 
 function get_move_from_policy(chain::GutzwillerChain,policy::SwapNeighborsPolicy)::SwapNeighborMove
     """ Specific function for gutzwiller chain with swap neighbor policy"""
