@@ -2,7 +2,7 @@ using Test
 include("FreeFermionGutzwiller.jl")
 
 
-@testset "test-FFGMATH" begin
+ffgmathtest = @testset "test-FFGMATH" begin
     ############### testing lattice routines #################################
     dims = (2,3);
     lattice = Lattices.get_SquareLattice(dims,pbc=true);
@@ -41,7 +41,7 @@ include("FreeFermionGutzwiller.jl")
     @test FreeFermionGutzwiller.sherman_morrison_inverse_update(m1inv,u,v) ≈ inv(m2)
 end
 
-@testset "test-FFGMAIN" begin
+@testset "test-FFGMAIN/HELPERS" begin
     ############ make a test chain $$$$$$$$$$$$$$$$$$$$$$$$
 
     model = Dict(
@@ -63,14 +63,14 @@ end
                     "mc_warmup_steps" => 1)
 
     testchain = FreeFermionGutzwiller.GutzwillerChain();
-    FreeFermionGutzwiller.init_Chain!(testchain,
-            model=model,observable=observable,policy=policy,mc_spec=mc_spec
-            )
+    testchain.basechain = FreeFermionGutzwiller.MarkovChain()
+
 
     r_up = [3,1,5]
     r_down = [2,6,4]
 
-    # some trivial stuff
+
+    # STATE CREATION TESTS
     bd = [2, 4, 1, 6, 3, 5]
     @test FreeFermionGutzwiller.make_business_directory(r_up,r_down) == bd
 
@@ -87,6 +87,42 @@ end
     @test FreeFermionGutzwiller.get_init_bonds(model["lattice"].graph,spinc) ==
     ib
 
+    ## STATE UPDATE TESTS
+    teststate = FreeFermionGutzwiller.GutzwillerState(
+    r_up,r_down, bd, spinc,ib,
+    [], 0, 0, [],[]
+    )
 
+    testchain.basechain.state = teststate
+    testchain.basechain.model = model
+
+    ## test a simple move
+    move = FreeFermionGutzwiller.SwapNeighborMove((1,2))
+
+    @test FreeFermionGutzwiller.get_proposal_factor_ratio(testchain,move) == 3/7
+    FreeFermionGutzwiller.update_Rs!(teststate,move)
+    @test teststate.r_up == [3,2,5]
+    @test teststate.r_down == [1,6,4]
+
+
+
+    FreeFermionGutzwiller.update_Bonds!(testchain,move)
+
+    ub = SimpleGraph(6);
+    add_edge!(ub,1,2);
+    add_edge!(ub,1,3);
+    add_edge!(ub,1,5);
+    add_edge!(ub,2,4);
+    add_edge!(ub,2,6);
+    add_edge!(ub,3,4);
+    add_edge!(ub,5,6);
+    @test teststate.bonds == ub
+
+    FreeFermionGutzwiller.update_Spin_config!(teststate,move)
+    @test teststate.spin_config.sc == [-1,1,1,-1,1,-1]
+
+    bd = [4,2,1,6,3,5]
+    FreeFermionGutzwiller.update_Business_directory!(teststate,move)
+    @test teststate.business_directory == bd
 
 end
