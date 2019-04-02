@@ -33,8 +33,8 @@ get_Data(c::AbstractChain) = get_MarkovChain(c).data
 
 """ Run Monte Carlo"""
 function runMC!(chain::AbstractChain)
-    mc_specs = get_mc_specs(chain)
-    NUM_MC_STEPS = mc_specs["num_mc_steps"]
+    mc_specs = get_Mc_Spec(chain)
+    NUM_MC_STEPS = mc_specs["mc_steps"]
     SAMPLE_INTERVAL = mc_specs["sample_interval"]
 
     # run burn in steps
@@ -53,12 +53,38 @@ function runMC!(chain::AbstractChain)
     aggregate_diagnostics!(chain)
 end
 
+function aggregate_measurements!(chain::AbstractChain)
+    data = get_Data(chain)
+    diagnostics = get_Diagnostics(chain)
+
+    for (key,val) in data
+        data[key] = val/diagnostics["num_measurements"]
+    end
+end
+
+function aggregate_diagnostics!(chain::AbstractChain)
+    diagnostics = get_Diagnostics(chain)
+    diagnostics["acceptance_ratio"] =
+    diagnostics["accepted_moves"]/diagnostics["mc_steps"]
+end
+
+
+
 # measures a generic observable
 function measure_observable!(chain::AbstractChain)
     observable = get_Observable(chain)
-    result = observable(chain)
-    update_data!(chain,result)
+    result = observable(chain) # expect a dict
+    data = get_Data(chain)
+    diagnostics = get_Diagnostics(chain)
+
+    for (key, val) in result
+        data[key] += val
+    end
+
+    diagnostics["num_measurements"] +=1
 end
+
+
 
 """ Initialize a markov chain """
 function init_Chain!(

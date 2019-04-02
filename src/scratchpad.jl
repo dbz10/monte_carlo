@@ -10,14 +10,12 @@ using IterTools
 
 
 # define a model
-dims = (2,3) # dimension of the lattice
+dims = (20,) # dimension of the lattice
 lattice = Lattices.get_SquareLattice(dims,pbc=true) # make a square lattice
 filling = 1 # setting filling ≢ 1 means there are holes.
 
 
 gplot(lattice.graph,nodelabel=collect(1:nv(lattice.graph)))
-
-Lattices.get_Tightbinding_Wavefunctions(lattice)
 
 model = Dict(
     "dims" => dims,
@@ -29,15 +27,16 @@ model = Dict(
 
 function observable(chain::FreeFermionGutzwiller.GutzwillerChain)
     state = FreeFermionGutzwiller.get_State(chain)
-    Sz1Sz2 = state.spin_config.sc[1]*state.spin_config.sc[2]
-    data = Dict("Sz1Sz2" => Sz1Sz2)
+    Sz1 = state.spin_config.sc[1]
+    data = Dict("Sz1" => Sz1)
     return data
 end
 
 
 policy = FreeFermionGutzwiller.SwapNeighborsPolicy()
-mc_spec = Dict("mc_steps" => 1,
-                "mc_warmup_steps" => 1E3)
+mc_spec = Dict("mc_steps" => 1E3,
+                "mc_warmup_steps" => 1E3,
+                "sample_interval" => 1E2)
 
 # gplot(lattice.graph, nodelabel = 1:nv(lattice.graph))
 gutz = FreeFermionGutzwiller.GutzwillerChain()
@@ -46,10 +45,7 @@ FreeFermionGutzwiller.init_Chain!(gutz,
         model=model,observable=observable,policy=policy,mc_spec=mc_spec
         )
 
-@time FreeFermionGutzwiller.do_warmup!(gutz)
 
-FreeFermionGutzwiller.get_Diagnostics(gutz)
+state = FreeFermionGutzwiller.get_State(gutz)
 
-prod(model["dims"])
-
-zeros(5)
+sc = state.spin_config.sc

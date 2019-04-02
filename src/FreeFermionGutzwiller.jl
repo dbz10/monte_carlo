@@ -179,7 +179,9 @@ end
 
 function get_init_diagnostics(chain::GutzwillerChain)::Dict
     d0 = Dict("mc_steps" => 0,
-            "accepted_moves" => 0)
+            "accepted_moves" => 0,
+            "num_measurements" => 0,
+            "acceptance_ratio" => 0.0)
     return d0
 end
 
