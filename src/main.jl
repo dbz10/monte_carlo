@@ -6,28 +6,13 @@ include("lattices.jl")
 
 
 # define a model
-dims = (400,) # dimension of the lattice
+dims = (8,8) # dimension of the lattice
 lattice = Lattices.get_SquareLattice(dims) # make a square lattice
 # observable = FreeFermionGutzwiller.observe_Swap()
 filling = 1 # setting filling ≢ 1 means there are holes.
 
 
-function Sz1(chain::FreeFermionGutzwiller.GutzwillerChain)
-    state = FreeFermionGutzwiller.get_State(chain)
-    model = FreeFermionGutzwiller.get_Model(chain)
-    Sz1 = state.spin_config.sc[1]
-    data = Dict("Sz1" => Float64(Sz1))
-    return data
-end
 
-using Statistics: mean
-function Sz1Sz2(chain::FreeFermionGutzwiller.GutzwillerChain)
-    state = FreeFermionGutzwiller.get_State(chain)
-    model = FreeFermionGutzwiller.get_Model(chain)
-    Sz1Sz2 = mean([state.spin_config.sc[i]*state.spin_config.sc[i+1] for i in 1:length(sc)])
-    data = Dict("Sz1Sz2" => Float64(Sz1Sz2))
-    return data
-end
 
 
 model = Dict(
@@ -42,10 +27,10 @@ model = Dict(
 policy = FreeFermionGutzwiller.SwapNeighborsPolicy()
 
 # MC specifications
-mc_specs = Dict(
-    "mc_warmup_steps" => Int(1e5),
-    "mc_steps" => Int(1e7),
-    "sample_interval" => Int(1e2),
+mc_spec = Dict(
+    "mc_warmup_steps" => Int(1e2*prod(dims)),
+    "mc_steps" => Int(1e4*prod(dims)),
+    "sample_interval" => Int(prod(dims)*4),
     )
 
 
@@ -56,11 +41,16 @@ gutzwiller_chain = FreeFermionGutzwiller.GutzwillerChain()
 
 # initialize the chain: sets up the initial state
 FreeFermionGutzwiller.init_Chain!(gutzwiller_chain,
-    model=model,observable=Sz1Sz2,policy=policy,mc_spec=mc_spec)
+    model=model,observable=FreeFermionGutzwiller.NeighborSzSz,
+    policy=policy,mc_spec=mc_spec)
 
 FreeFermionGutzwiller.get_Mc_Spec(gutzwiller_chain)
 
 
 FreeFermionGutzwiller.runMC!(gutzwiller_chain)
 
-print(FreeFermionGutzwiller.get_Data(gutzwiller_chain))
+# print(FreeFermionGutzwiller.get_Data(gutzwiller_chain))
+# print("\n")
+# print("Acceptance Ratio: ", FreeFermionGutzwiller.get_Diagnostics(gutzwiller_chain)["acceptance_ratio"])
+# print("\n")
+print(FreeFermionGutzwiller.get_Data(gutzwiller_chain)["SzSz"]*3)

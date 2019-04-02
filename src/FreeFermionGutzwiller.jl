@@ -227,9 +227,9 @@ end
 function get_proposal_factor_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
     state = get_State(chain)
     bonds = state.bonds
-    configuration_factor_forwards = 1.0/count_bonds(bonds)
+    configuration_factor_forwards = 1.0/Float64(count_bonds(bonds))
     new_bonds = get_updated_bonds(chain,move)
-    configuration_factor_backwards = 1.0/count_bonds(new_bonds)
+    configuration_factor_backwards = 1.0/Float64(count_bonds(new_bonds))
     return configuration_factor_backwards/configuration_factor_forwards
 end
 
