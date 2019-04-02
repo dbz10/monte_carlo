@@ -25,7 +25,7 @@ using StatsBase: sample, sample!
 using IterTools: nth
 using LightGraphs:
     SimpleGraph, edges, src, dst, rem_edge!, add_edge!, neighbors,
-    adjacency_matrix, ne, nv
+    adjacency_matrix, ne, nv, vertices
 using LinearAlgebra: dot, det, inv, eigen, cond
 
 # abstract type definitions
@@ -72,6 +72,7 @@ end
 # Load in helper functions
 include("FFGmath.jl")
 include("FFGhelpers.jl")
+include("FFGobservables.jl")
 
 """ High level functions """
 function get_Move(chain::GutzwillerChain)
@@ -220,7 +221,7 @@ function compute_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
     # we also need the ratio of proposal factors
     pf_ratio = get_proposal_factor_ratio(chain,move)
 
-    return det_ratio_up*det_ratio_down*pf_ratio, (det_ratio_up, det_ratio_down)
+    return det_ratio_up^2*det_ratio_down^2*pf_ratio, (det_ratio_up, det_ratio_down)
 end
 
 function get_proposal_factor_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
