@@ -24,10 +24,11 @@ function get_updated_bonds(chain::GutzwillerChain,move::SwapNeighborMove)::Simpl
     return bonds
 end
 
-function get_electron_index(site::Int64,state::GutzwillerState)::Int64
-    ns = length(state.business_directory)
-    return ((site-1) % (ns/2)) + 1
-end
+# deprecated
+# function get_electron_index(site::Int64,state::GutzwillerState)::Int64
+#     ns = length(state.business_directory)
+#     return ((site-1) % (ns/2)) + 1
+# end
 
 function get_conditioned_state(
     chain, n_up,n_down, conditioning_tol=10^6)
@@ -63,14 +64,12 @@ function update_Rs!(state::GutzwillerState,move::SwapNeighborMove)
     electron_A = bd[l1]
     electron_B = bd[l2]
 
-    if electron_B > electron_A # then A is spin up and B is spin down
-        electron_B = get_electron_index(electron_B,state)
-        r_up[electron_A] = l2
-        r_down[electron_B] = l1
+    if electron_A.spin=="up" # then A is spin up and B is spin down
+        r_up[electron_A.label] = l2
+        r_down[electron_B.label] = l1
     else # A is down and B is up
-        electron_A = get_electron_index(electron_A,state)
-        r_down[electron_A] = l2
-        r_up[electron_B] = l1
+        r_down[electron_A.label] = l2
+        r_up[electron_B.label] = l1
     end
 end
 
@@ -125,7 +124,7 @@ function make_business_directory(r_up::Array,r_down::Array)::Array
     ns = length([r_up ; r_down])
     bd = Array{Electron}(undef, ns)
 
-    for i in 1:len(r_up) # assume len(r_up) = len(r_down)
+    for i in 1:length(r_up) # assume len(r_up) = len(r_down)
         bd[r_up[i]] = Electron(i,"up")
         bd[r_down[i]] = Electron(i,"down")
     end
@@ -159,26 +158,22 @@ function get_update_vectors(state::GutzwillerState,move::SwapNeighborMove)
     u2 = zeros(length(state.r_down))
     v2 = zeros(length(state.r_down))
 
-    if electron_A < electron_B
+    if electron_A.spin=="up"
         # then A is up (1) and B is down (2)
         # up electron is moving from site A to site B
-        electron_A = get_electron_index(electron_A,state)
-        u1[electron_A] = 1
+        u1[electron_A.label] = 1
         v1 = state.wavefunctions[site_B,:] - state.wavefunctions[site_A,:]
 
         # down electron is moving from site B to site A
-        electron_B = get_electron_index(electron_B,state)
-        u2[electron_B] = 1
+        u2[electron_B.label] = 1
         v2 = state.wavefunctions[site_A,:] - state.wavefunctions[site_B,:]
 
     else
         # A is down (2) and B is up (1)
-        electron_A = get_electron_index(electron_A,state)
-        u2[electron_A] = 1
+        u2[electron_A.label] = 1
         v2 = state.wavefunctions[site_B,:] - state.wavefunctions[site_A,:]
 
-        electron_B = get_electron_index(electron_B,state)
-        u1[electron_B] = 1
+        u1[electron_B.label] = 1
         v1 = state.wavefunctions[site_A,:] - state.wavefunctions[site_B,:]
     end
 
