@@ -16,7 +16,7 @@
 # or maybe even better is to write it as
 # book = [(3,"Up"), (1,"Up"), (2,"Down"), (1,"Down"), (2,"Up"), (3,"Down")]
 
-module FreeFermionGutzwiller
+module FFG
 
 include("mcbase.jl")
 
@@ -44,6 +44,13 @@ struct InvalidLatticeError <: Exception
     var::Symbol
 end
 
+struct Electron
+    """ for example, c_{1,up} """
+    label::Int
+    spin::String
+end
+
+
 struct SpinConfiguration
     """ This is borderline pointless, it's just a typed array"""
     sc::Array
@@ -59,7 +66,7 @@ end
 mutable struct GutzwillerState <: AbstractState
      r_up::Array{Int64} # position of spin up electrons
      r_down::Array{Int64} # position of spin down electrons
-     business_directory::Array{Int64} # map from site to electron index.
+     business_directory::Array{Electron} # map from site to electron index.
      spin_config::SpinConfiguration # a map of the spin configuration onto the graph
      bonds::SimpleGraph{Int64} # which bonds have disaligned spins
      wavefunctions::Array # wavefunctions ϕ_j(r_i) where ϵ_j < ϵ_fermi

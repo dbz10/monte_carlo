@@ -1,17 +1,17 @@
 """ Observables that can be measured on a gutzwiller state """
 
-function Szi(chain::FreeFermionGutzwiller.GutzwillerChain,i)
-    state = FreeFermionGutzwiller.get_State(chain)
-    model = FreeFermionGutzwiller.get_Model(chain)
+function Szi(chain::GutzwillerChain,i)
+    state = get_State(chain)
+    model = get_Model(chain)
     Sz = state.spin_config.sc[i]
     data = Dict("Szi" => Float64(Szi))
     return data
 end
 
 using Statistics: mean
-function NeighborSzSz(chain::FreeFermionGutzwiller.GutzwillerChain)
-    state = FreeFermionGutzwiller.get_State(chain)
-    model = FreeFermionGutzwiller.get_Model(chain)
+function NeighborSzSz(chain::GutzwillerChain)
+    state = get_State(chain)
+    model = get_Model(chain)
     lg = model["lattice"].graph # latticegraph
     spinc = state.spin_config.sc # spin config array
 

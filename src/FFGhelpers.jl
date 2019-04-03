@@ -122,9 +122,15 @@ function make_business_directory(r_up::Array,r_down::Array)::Array
     """ Makes the directory for the lattice. The i'th element
     is the index of the electron living on site i. indices <= N/2
     refer to up spins and indices > N/2 refer to down spins """
-    r_full = [r_up ; r_down]
-    sortkey = sortperm(r_full)
-    return sortkey
+    ns = length([r_up ; r_down])
+    bd = Array{Electron}(undef, ns)
+
+    for i in 1:len(r_up) # assume len(r_up) = len(r_down)
+        bd[r_up[i]] = Electron(i,"up")
+        bd[r_down[i]] = Electron(i,"down")
+    end
+
+    return bd
 end
 
 function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove

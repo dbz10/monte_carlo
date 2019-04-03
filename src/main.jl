@@ -1,14 +1,16 @@
 #main.jl
 
-include("FreeFermionGutzwiller.jl")
+include("FFGmain.jl")
 include("lattices.jl")
-# include("observables.jl")
 
+dl = [4,6,8]
+cl = zeros(size(dl))
 
+for i in 1:length(dl)
 # define a model
-dims = (8,8) # dimension of the lattice
+dims = (dl[i],dl[i]) # dimension of the lattice
 lattice = Lattices.get_SquareLattice(dims) # make a square lattice
-# observable = FreeFermionGutzwiller.observe_Swap()
+# observable = FFG.observe_Swap()
 filling = 1 # setting filling ≢ 1 means there are holes.
 
 
@@ -24,7 +26,7 @@ model = Dict(
     )
 
 # Policy
-policy = FreeFermionGutzwiller.SwapNeighborsPolicy()
+policy = FFG.SwapNeighborsPolicy()
 
 # MC specifications
 mc_spec = Dict(
@@ -37,20 +39,25 @@ mc_spec = Dict(
 
 # create a markov chain object representing our gutzwiller projected
 # free fermion model
-gutzwiller_chain = FreeFermionGutzwiller.GutzwillerChain()
+gutzwiller_chain = FFG.GutzwillerChain()
 
 # initialize the chain: sets up the initial state
-FreeFermionGutzwiller.init_Chain!(gutzwiller_chain,
-    model=model,observable=FreeFermionGutzwiller.NeighborSzSz,
+FFG.init_Chain!(gutzwiller_chain,
+    model=model,observable=FFG.NeighborSzSz,
     policy=policy,mc_spec=mc_spec)
 
-FreeFermionGutzwiller.get_Mc_Spec(gutzwiller_chain)
+FFG.get_Mc_Spec(gutzwiller_chain)
 
 
-FreeFermionGutzwiller.runMC!(gutzwiller_chain)
+FFG.runMC!(gutzwiller_chain)
 
-# print(FreeFermionGutzwiller.get_Data(gutzwiller_chain))
+# print(FFG.get_Data(gutzwiller_chain))
 # print("\n")
-# print("Acceptance Ratio: ", FreeFermionGutzwiller.get_Diagnostics(gutzwiller_chain)["acceptance_ratio"])
+# print("Acceptance Ratio: ", FFG.get_Diagnostics(gutzwiller_chain)["acceptance_ratio"])
 # print("\n")
-print(FreeFermionGutzwiller.get_Data(gutzwiller_chain)["SzSz"]*3)
+print(FFG.get_Data(gutzwiller_chain)["SzSz"]*3, "\n")
+cl[i] = FFG.get_Data(gutzwiller_chain)["SzSz"]*3;
+end
+
+print(dl,"\n")
+print(cl)
