@@ -46,5 +46,23 @@ function SwipeRight(database::ElectronTinder)
     return matches
 end
 
-
-function Swap(chain::GutzwillerChain,regionsize::Int)
+# using Statistics: mean
+# function Swap(chain::DoubleGutzwillerChain,regionsize::Int)
+#
+#     """ regionsize ≈ r, the radius of the region selected """
+#     state = get_State(chain)
+#     lg = get_Model(chain)["lattice"].graph
+#
+#     swap_per_site = []
+#
+#     for v in vertices(lg)
+#         sites = nearest_neighbors(lg,v,regionsize)
+#         swap_per_site[v] = compute_swapregion(state,sites)
+#     end
+#
+#     return mean(swap_per_site)
+# end
+#
+#
+#          (spinc1, spinc2) = (state[1].spin_configuration.sc[sites],
+#           state[1].spin_configuration.sc[sites])

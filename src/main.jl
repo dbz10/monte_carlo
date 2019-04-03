@@ -1,4 +1,4 @@
-#main.jl
+# main.jl runs on small systems sizes, to test that code is fully run-able
 
 include("FFGmain.jl")
 include("lattices.jl")
@@ -8,7 +8,7 @@ cl = zeros(size(dl))
 
 for i in 1:length(dl)
 # define a model
-dims = (dl[i],dl[i]) # dimension of the lattice
+dims = (dl[i],) # dimension of the lattice
 lattice = Lattices.get_SquareLattice(dims) # make a square lattice
 # observable = FFG.observe_Swap()
 filling = 1 # setting filling ≢ 1 means there are holes.

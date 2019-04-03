@@ -98,7 +98,7 @@ end
     testchain.basechain.model = model
 
     ## test a simple move
-    move = FFG.SwapNeighborMove((1,2))
+    move = FFG.ExchangeMove((1,2))
 
     @test FFG.get_proposal_factor_ratio(testchain,move) == 3/7
     FFG.update_Rs!(teststate,move)
@@ -127,4 +127,10 @@ end
     FFG.update_Business_directory!(teststate,move)
     @test teststate.business_directory == bd
 
+end
+
+
+@testset "maintest" begin
+    include("maintest.jl")
+    @test size(maintest()) == (3,)
 end

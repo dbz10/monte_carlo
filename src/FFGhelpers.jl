@@ -2,7 +2,7 @@
 
 count_bonds(graph::SimpleGraph{Int64}) = ne(graph)
 
-function get_updated_bonds(chain::GutzwillerChain,move::SwapNeighborMove)::SimpleGraph{Int64}
+function get_updated_bonds(chain::GutzwillerChain,move::ExchangeMove)::SimpleGraph{Int64}
     """ Returns a new graph object with the bonds of the updated state"""
     state = get_State(chain)
     model = get_Model(chain)
@@ -55,7 +55,7 @@ function get_conditioned_state(
     end
 end
 
-function update_Rs!(state::GutzwillerState,move::SwapNeighborMove)
+function update_Rs!(state::GutzwillerState,move::ExchangeMove)
     r_up = state.r_up
     r_down = state.r_down
     bd = state.business_directory
@@ -73,20 +73,20 @@ function update_Rs!(state::GutzwillerState,move::SwapNeighborMove)
     end
 end
 
-function update_Spin_config!(state::GutzwillerState,move::SwapNeighborMove)
+function update_Spin_config!(state::GutzwillerState,move::ExchangeMove)
     sc = state.spin_config.sc
     l1 = move.sites[1]
     l2 = move.sites[2]
     sc[l1], sc[l2] = sc[l2], sc[l1]
 end
 
-function update_Bonds!(chain::GutzwillerChain,move::SwapNeighborMove)
+function update_Bonds!(chain::GutzwillerChain,move::ExchangeMove)
     state = get_State(chain)
     tmp = get_updated_bonds(chain,move)
     state.bonds = tmp
 end
 
-function update_Determinants!(chain::GutzwillerChain,move::SwapNeighborMove,extras)
+function update_Determinants!(chain::GutzwillerChain,move::ExchangeMove,extras)
     # extras contains det_ratio_up and det_ratio_down
 
     state = get_State(chain)
@@ -100,7 +100,7 @@ function update_Determinants!(chain::GutzwillerChain,move::SwapNeighborMove,extr
     state.det_A_down *= det_ratio_down
 end
 
-function update_Inverses!(state::GutzwillerState,move::SwapNeighborMove)
+function update_Inverses!(state::GutzwillerState,move::ExchangeMove)
     u1,v1,u2,v2 = get_update_vectors(state,move)
     # recall u1 v1 are for up, u2 v2 are for down
     t = sherman_morrison_inverse_update(state.A_inv_up,u1,v1)
@@ -110,7 +110,7 @@ function update_Inverses!(state::GutzwillerState,move::SwapNeighborMove)
     state.A_inv_down = r
 end
 
-function update_Business_directory!(state::GutzwillerState,move::SwapNeighborMove)
+function update_Business_directory!(state::GutzwillerState,move::ExchangeMove)
     bd = state.business_directory
     l1 = move.sites[1]
     l2 = move.sites[2]
@@ -132,15 +132,15 @@ function make_business_directory(r_up::Array,r_down::Array)::Array
     return bd
 end
 
-function get_SwapNeighborMove(bonds::SimpleGraph{Int64})::SwapNeighborMove
+function get_ExchangeMove(bonds::SimpleGraph{Int64})::ExchangeMove
     """ draw a random bond and return the two sites attached to that bond """
     index = rand(1:ne(bonds))
     edge = nth(edges(bonds),index) #nth is from IterTools
     move_sites = (src(edge),dst(edge))
-    return SwapNeighborMove(move_sites)
+    return ExchangeMove(move_sites)
 end
 
-function get_update_vectors(state::GutzwillerState,move::SwapNeighborMove)
+function get_update_vectors(state::GutzwillerState,move::ExchangeMove)
     """ Gets vectors which perform rank 1 row update to the slater determinant
     specifically, u is zero except at column i and v_i = ϕ_i(r') - ϕ_i(r)
     u1 and v1 are for up spin, and u2 and v2 are for down spin"""

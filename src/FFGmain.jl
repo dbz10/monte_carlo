@@ -30,7 +30,6 @@ using LinearAlgebra: dot, det, inv, eigen, cond
 
 # abstract type definitions
 abstract type FreeFermionGutzwillerPolicy <: AbstractPolicy end
-abstract type SwapMove <: AbstractMove end
 
 # concrete type defs
 mutable struct GutzwillerChain <: AbstractChain
@@ -56,7 +55,7 @@ struct SpinConfiguration
     sc::Array
 end
 
-struct SwapNeighborMove <: SwapMove
+struct ExchangeMove <: AbstractMove
     sites::Tuple
 end
 
@@ -206,14 +205,14 @@ function update_Diagnostics!(chain::GutzwillerChain,accept::Bool)
     diag["accepted_moves"] += Int64(accept)
 end
 
-function get_move_from_policy(chain::GutzwillerChain,policy::SwapNeighborsPolicy)::SwapNeighborMove
+function get_move_from_policy(chain::GutzwillerChain,policy::SwapNeighborsPolicy)::ExchangeMove
     """ Specific function for gutzwiller chain with swap neighbor policy"""
     bonds = get_State(chain).bonds
-    move = get_SwapNeighborMove(bonds)
+    move = get_ExchangeMove(bonds)
     return move
 end
 
-function compute_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
+function compute_ratio(chain::GutzwillerChain,move::ExchangeMove)
     """ Computes transition amplitude. Returns transition amplitude,
     det_ratio_up, det_ratio_down. First return argument must always be ratio"""
     state = get_State(chain)
@@ -231,7 +230,7 @@ function compute_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
     return det_ratio_up^2*det_ratio_down^2*pf_ratio, (det_ratio_up, det_ratio_down)
 end
 
-function get_proposal_factor_ratio(chain::GutzwillerChain,move::SwapNeighborMove)
+function get_proposal_factor_ratio(chain::GutzwillerChain,move::ExchangeMove)
     state = get_State(chain)
     bonds = state.bonds
     configuration_factor_forwards = 1.0/Float64(count_bonds(bonds))
