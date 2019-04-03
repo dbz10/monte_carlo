@@ -36,8 +36,17 @@ mutable struct GutzwillerChain <: AbstractChain
     basechain::MarkovChain
     GutzwillerChain() = new()
 end
-
 get_MarkovChain(c::GutzwillerChain) = c.basechain
+
+struct DoubleGutzwillerChain <: ChainCollection
+    """ Struct for working in the replica space. The item replicas
+    is a tuple of whole GutzwillerChain objects. All the regular chain
+    functions can be applied to DoubleGutzwillerChain by making them elementwise
+    i.e. init_Chain!.(DGC) """
+    replicas::Tuple{GutzwillerChain,GutzwillerChain} # replicas is a tuple of (gutz1, gutz2)
+    DoubleGutzwillerChain() = new((GutzwillerChain(),GutzwillerChain()))
+end
+get_Replicas(c::DoubleGutzwillerChain) = c.replicas # return the individual markov chains
 
 struct InvalidLatticeError <: Exception
     var::Symbol

@@ -50,7 +50,7 @@ end
 
 end
 
-function nth_nearest_neighbors(graph::SimpleGraph{Int64},center_site::Int,n::Int)
+function nearest_neighbors(graph::SimpleGraph{Int64},center_site::Int,n::Int)
     """ returns indices of vertices that are within n links of the center site.
     algorithm works recursively.
     ex: on a graph representing a 1d chain,
@@ -61,7 +61,7 @@ function nth_nearest_neighbors(graph::SimpleGraph{Int64},center_site::Int,n::Int
          neighbors_collection = [neighbors_collection ; neighbors(graph,center_site)]
      else
          for i in neighbors(graph,center_site)
-             neighbors_collection = [neighbors_collection ; nth_nearest_neighbors(graph,i,n-1)]
+             neighbors_collection = [neighbors_collection ; nearest_neighbors(graph,i,n-1)]
          end
      end
 

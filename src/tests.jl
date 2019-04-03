@@ -1,9 +1,15 @@
 using Test
 include("FFGmain.jl")
+include("lattices.jl")
 
 
-ffgmathtest = @testset "test-FFGMATH" begin
+ffgmathtest = @testset "test-FFGMATH/LATTICES" begin
     ############### testing lattice routines #################################
+    dims = (5,5);
+    lg = Lattices.get_SquareLattice(dims,pbc=true).graph
+    @test sort(nearest_neighbors(lg, 3,2)) ==
+    sort([3,4,5,2,1,9,8,7,13,23,18,24,22])
+
     dims = (2,3);
     lattice = Lattices.get_SquareLattice(dims,pbc=true);
     @test Matrix(adjacency_matrix(lattice.graph)) == [0 1 1 0 1 0;

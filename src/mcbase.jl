@@ -7,6 +7,7 @@ abstract type AbstractState end
 abstract type AbstractPolicy end
 abstract type AbstractMove end
 abstract type AbstractObservable end
+abstract type ChainCollection end
 
 mutable struct MarkovChain <: AbstractChain
     model::Dict # lattice, temperature, hamiltonian, etc...
@@ -29,6 +30,16 @@ get_Observable(c::AbstractChain) = get_MarkovChain(c).observable
 get_Diagnostics(c::AbstractChain) = get_MarkovChain(c).diagnostics
 get_Mc_Spec(c::AbstractChain) = get_MarkovChain(c).mc_spec
 get_Data(c::AbstractChain) = get_MarkovChain(c).data
+
+# extension to chain collection
+get_MarkovChain(c::ChainCollection) = get_MarkovChain.(get_Replicas(c))
+get_Model(c::ChainCollection) = get_Model.(get_MarkovChain(c))
+get_State(c::ChainCollection) = get_State.(get_MarkovChain(c))
+get_Policy(c::ChainCollection) = get_Policy.(get_MarkovChain(c))
+get_Observable(c::ChainCollection) = get_Observable.(get_MarkovChain(c))
+get_Diagnostics(c::ChainCollection) = get_Diagnostics.(get_MarkovChain(c))
+get_Mc_Spec(c::ChainCollection) = get_Mc_Spec.(get_MarkovChain(c))
+get_Data(c::ChainCollection) = get_Data.(get_MarkovChain(c))
 
 
 """ Run Monte Carlo"""
