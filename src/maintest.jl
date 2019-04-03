@@ -28,8 +28,8 @@ function maintest()
 
 
     mc_spec = Dict(
-        "mc_warmup_steps" => Int(1e2*prod(dims)),
-        "mc_steps" => Int(1e3*prod(dims)),
+        "mc_warmup_steps" => Int(1e1*prod(dims)),
+        "mc_steps" => Int(1e2*prod(dims)),
         "sample_interval" => Int(prod(dims)*4),
         )
 
