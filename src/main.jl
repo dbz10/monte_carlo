@@ -1,4 +1,4 @@
-# main.jl runs on small systems sizes, to test that code is fully run-able
+# main.jl 
 
 include("FFGmain.jl")
 include("lattices.jl")

@@ -5,7 +5,7 @@ using LinearAlgebra
 using GraphPlot
 using LightGraphs
 using IterTools
-
+using RecursiveArrayTools: convert, VectorOfArray
 
 
 
@@ -14,6 +14,8 @@ dims = (20,) # dimension of the lattice
 lattice = Lattices.get_SquareLattice(dims,pbc=true) # make a square lattice
 filling = 1 # setting filling ≢ 1 means there are holes.
 
+VA =VectorOfArray([neighbors(lattice.graph,i)[:] for i in 4:5])
+convert(Array,VA)[:]
 
 
 gplot(lattice.graph,nodelabel=collect(1:nv(lattice.graph)))
@@ -55,5 +57,26 @@ for i in vertices(lattice.graph)
     print(sc[i])
 end
 
-dl = [1, 2, 3, 4]
-zeros(size(dl))
+function nth_nearest_neighbors(graph::SimpleGraph{Int64},center_site::Int{64},n::Int{64})
+    """ returns indices of vertices that are within n links of the center site.
+    algorithm works recursively.
+    ex: on a graph representing a 1d chain,
+     nth_nearest_neighbors(graph, 5,2) = (3,4,5,6,7)
+     """
+     neighbors_collection = [center_site]; # I don't think there's any way to preallocate this
+     if n == 1
+         neighbors_collection = [neighbors_collection ; neighbors(graph,center_site)]
+     else
+         # l = convert(Array,VectorOfArray([nth_nearest_neighbors(graph,j,n-1) for j in neighbors(center_site)]))[:]
+         # this is some ridiculous series of commands to convert an array of lists into one list
+         for i in neighbors(center_site)
+             neighbors_collection = [neighbors_collection ; nth_nearest_neighbors(graph,i,n-1)]
+         end
+     end
+
+    return neighbors_collection
+end
+
+
+
+unique([5; neighbors(lattice.graph,5); 5])
