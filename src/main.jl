@@ -31,7 +31,7 @@ policy = FFG.SwapNeighborsPolicy()
 # MC specifications
 mc_spec = Dict(
     "mc_warmup_steps" => Int(1e2*prod(dims)),
-    "mc_steps" => Int(1e4*prod(dims)),
+    "mc_steps" => Int(1e3*prod(dims)),
     "sample_interval" => Int(prod(dims)*4),
     )
 
