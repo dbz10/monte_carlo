@@ -44,6 +44,7 @@ struct DoubleGutzwillerChain <: ChainCollection
     functions can be applied to DoubleGutzwillerChain by making them elementwise
     i.e. init_Chain!.(DGC) """
     replicas::Tuple{GutzwillerChain,GutzwillerChain} # replicas is a tuple of (gutz1, gutz2)
+    basechain::MarkovChain # store "global" info like the observable and data
     DoubleGutzwillerChain() = new((GutzwillerChain(),GutzwillerChain()))
 end
 get_Replicas(c::DoubleGutzwillerChain) = c.replicas # return the individual markov chains

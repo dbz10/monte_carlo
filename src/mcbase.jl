@@ -13,13 +13,16 @@ mutable struct MarkovChain <: AbstractChain
     model::Dict # lattice, temperature, hamiltonian, etc...
     state::AbstractState # spins, fermions, whatever
     policy::AbstractPolicy # random choice, neighbors, ...
-    move::AbstractMove # flip a spin, exchange neighbors, ...
+    # move::AbstractMove # flip a spin, exchange neighbors, ...
     mc_spec::Dict # MC steps, MC warmup, measurement interval
     observable::Any # some function
     data::Dict # outcomes of observable
     diagnostics::Dict # information on the MC run
     MarkovChain() = new()
 end
+
+
+
 
 # functions to access parameters of a generic markov chain
 get_MarkovChain(c::MarkovChain) = c
@@ -32,14 +35,15 @@ get_Mc_Spec(c::AbstractChain) = get_MarkovChain(c).mc_spec
 get_Data(c::AbstractChain) = get_MarkovChain(c).data
 
 # extension to chain collection
-get_MarkovChain(c::ChainCollection) = get_MarkovChain.(get_Replicas(c))
-get_Model(c::ChainCollection) = get_Model.(get_MarkovChain(c))
-get_State(c::ChainCollection) = get_State.(get_MarkovChain(c))
+get_Chains(c::ChainCollection) = get_MarkovChain.(get_Replicas(c))
+get_GlobalChain(c::ChainCollection) = c.basechain
+get_Model(c::ChainCollection) = get_Model(get_GlobalChain(c))
+get_State(c::ChainCollection) = get_State.(get_Chains(c))
 get_Policy(c::ChainCollection) = get_Policy.(get_MarkovChain(c))
-get_Observable(c::ChainCollection) = get_Observable.(get_MarkovChain(c))
+get_Observable(c::ChainCollection) = get_Observable(get_GlobalChain(c))
 get_Diagnostics(c::ChainCollection) = get_Diagnostics.(get_MarkovChain(c))
 get_Mc_Spec(c::ChainCollection) = get_Mc_Spec.(get_MarkovChain(c))
-get_Data(c::ChainCollection) = get_Data.(get_MarkovChain(c))
+get_Data(c::ChainCollection) = get_Data(get_GlobalChain(c))
 
 
 """ Run Monte Carlo"""
