@@ -85,6 +85,8 @@ function compute_swapregion(chain::DoubleGutzwillerChain,
     (MoveList1, MoveList2) = SwipeRight.(Tinder)
     @assert size(MoveList1) == size(MoveList2)
 
+
+
     # now because update_chain! modifies the state, make copies of
     # the two states to update
     free_chains = deepcopy(get_Replicas(chain))
@@ -103,9 +105,11 @@ function compute_swapregion(chain::DoubleGutzwillerChain,
     s0 = state # shorter name to make the det product fit on one line
     ss = (get_State(free_chains[1]), get_State(free_chains[2])) # swapped states
 
+
     # determinant products in swapped and original wavefunctions
     sdp = ss[1].det_A_up * ss[1].det_A_down * ss[2].det_A_up * ss[2].det_A_down
     odp = s0[1].det_A_up * s0[1].det_A_down * s0[2].det_A_up * s0[2].det_A_down
 
+    print("sdp: ",sdp," odp: ",odp,"\n")
     return sdp/odp
 end

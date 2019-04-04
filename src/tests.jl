@@ -1,4 +1,6 @@
 using Test
+using LightGraphs
+using LinearAlgebra
 include("FFGmain.jl")
 include("lattices.jl")
 
@@ -143,7 +145,7 @@ end
 
 @testset "swaproutines" begin
     """ Test suite for swap routines. """
-    dims = (8,) # dimension of the lattice
+    dims = (6,) # dimension of the lattice
     lattice = Lattices.get_SquareLattice(dims,pbc=true) # make a square lattice
     filling = 1 # setting filling ≢ 1 means there are holes.
     model = Dict(
@@ -173,10 +175,10 @@ end
     c1.basechain.model = model
     c2.basechain.model = model
 
-    r_up1 = [1,2,4,5]
-    r_down1 = [3,6,7,8]
-    r_up2 = [2,3,4,6]
-    r_down2 = [1,5,7,8]
+    r_up1 = [5,6,4]
+    r_down1 = [2,1,3]
+    r_up2 = [2,5,1]
+    r_down2 = [6,4,3]
 
     teststate1 = FFG.get_test_state(c1,r_up1,r_down1)
     teststate2 = FFG.get_test_state(c2,r_up2,r_down2)
@@ -185,7 +187,9 @@ end
     dg.replicas[1].basechain.state = teststate1
     dg.replicas[2].basechain.state = teststate2
 
-    swapsites = [1,2,3,4,5,6]
+
+    # first lets test a region that has a single exchange
+    swapsites = [1,4,5]
 
     (spinc1,spinc2) = (teststate1.spin_config.sc,teststate2.spin_config.sc)
 
@@ -198,10 +202,24 @@ end
             FFG.addUser!(Tinder2,site,spinc2[site])
         end
     end
-    @test FFG.SwipeRight(Tinder1) == FFG.SwipeRight(FFG.ElectronTinder([1,5],[3,6]))
-    @test FFG.SwipeRight(Tinder2) == FFG.SwipeRight(FFG.ElectronTinder([3,6],[1,5]))
+    @test FFG.SwipeRight(Tinder1) == FFG.SwipeRight(FFG.ElectronTinder([4],[1]))
+    @test FFG.SwipeRight(Tinder2) == FFG.SwipeRight(FFG.ElectronTinder([1],[4]))
 
     # now comes the difficult test...
-    FFG.compute_swapregion(dg,swapsites)
+
+    #
+    r_up1prime = [5,6,1]
+    r_down1prime = [2,4,3]
+    r_up2prime = [2,5,4]
+    r_down2prime = [6,1,3]
+    #
+    # ts1p = FFG.get_test_state(c1,r_up1prime,r_down1prime)
+    # ts2p = FFG.get_test_state(c2,r_up2prime,r_down2prime)
+
+    # print(ts1p.det_A_up * ts1p.det_A_down * ts2p.det_A_up * ts2p.det_A_down,"\n")
+    # print(teststate1.det_A_up * teststate1.det_A_down * teststate2.det_A_up * teststate2.det_A_down,"\n")
+
+    # manual_eval = (ts1p.det_A_up * ts1p.det_A_down * ts2p.det_A_up * ts2p.det_A_down)/(teststate1.det_A_up * teststate1.det_A_down * teststate2.det_A_up * teststate2.det_A_down)
+    print(FFG.compute_swapregion(dg,swapsites))
 
 end
