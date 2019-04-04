@@ -21,22 +21,17 @@ struct SquareLattice <: Lattice
     lattice_vectors::Array{Int64}
 end
 
+struct MixedBCSquareLattice <: Lattice
+    dims::Tuple
+    graph::SimpleWeightedGraphs.SimpleWeightedGraph
+end
 
-function get_MixedBoundarySquareLattice(dims)::SimpleWeightedGraph
+function get_MixedBoundarySquareLattice(dims::Tuple)::MixedBCSquareLattice
     """ This is an extension of the function Grid from LightGraphs to
     make a weighted graph with antiperiodic boundary conditions in one direction
     and periodic boundary conditions in the other, for the purposes
     of obtaining a nondegenerate fermi surface.
     https://journals.jps.jp/doi/pdf/10.1143/JPSJ.57.2482 """
-
-    # checks if T is large enough for product(dims)
-   Tw = widen(T)
-   n = one(T)
-   for d in dims
-       d <= 0 && return SimpleGraph{T}(0)
-       nw = Tw(n) * Tw(d)
-       n = T(nw)
-   end
 
    # make anti periodic cycle in x direction
    g = SimpleWeightedGraph(CycleGraph(dims[1]))
@@ -45,7 +40,7 @@ function get_MixedBoundarySquareLattice(dims)::SimpleWeightedGraph
    for d in dims[2:end]
        g = cartesian_product(SimpleWeightedGraph(CycleGraph(d)), g)
    end
-   return g
+   return MixedBCSquareLattice(dims,g)
 end
 
 function get_SquareLattice(dims;pbc=true)::SquareLattice
@@ -71,8 +66,14 @@ struct TriangularLattice <: Lattice
 end
 
 
-function get_Tightbinding_Wavefunctions(lattice)::Eigen
+function get_Tightbinding_Wavefunctions(lattice::SquareLattice)::Eigen
     ham = -Matrix(adjacency_matrix(lattice.graph))
+    F = eigen(ham) # F.values are evals, F.vectors[:,k] is k'th evec.
+    return F
+end
+
+function get_Tightbinding_Wavefunctions(lattice::MixedBCSquareLattice)::Eigen
+    ham = -Matrix(weights(lattice.graph))
     F = eigen(ham) # F.values are evals, F.vectors[:,k] is k'th evec.
     return F
 end

@@ -12,6 +12,15 @@ ffgmathtest = @testset "test-FFGMATH/LATTICES" begin
     @test sort(unique(neighborhood(lg, 3,2))) ==
     sort([3,4,5,2,1,9,8,7,13,23,18,24,22])
 
+    dims = (4,4)
+    lattice = Lattices.get_MixedBoundarySquareLattice(dims)
+    F = Lattices.get_Tightbinding_Wavefunctions(lattice)
+    @test F.values ≈ [-3.414213562373095,-3.414213562373095,
+    -1.4142135623730951,-1.4142135623730951,-1.4142135623730951,-1.4142135623730951,
+    -0.5857864376269051,-0.5857864376269051,0.5857864376269051,0.5857864376269051,
+    1.4142135623730951,1.4142135623730951,1.4142135623730951,1.4142135623730951,
+    3.414213562373095,3.414213562373095]
+
     dims = (2,3);
     lattice = Lattices.get_SquareLattice(dims,pbc=true);
     @test Matrix(adjacency_matrix(lattice.graph)) == [0 1 1 0 1 0;
