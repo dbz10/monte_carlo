@@ -159,6 +159,8 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     hamiltonian = model["hamiltonian"]
     dims = model["dims"]
 
+
+
     filled_states = get_Wavefunctions(chain)
 
     # Distribute electrons over the sites of the lattice
@@ -170,6 +172,15 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
     # or states with holes
     n_up = Int(num_sites*filling/2)
     n_down = Int(num_sites*filling/2)
+
+    # in one dimension at half filling, n_σ must be odd
+    # https://bit.ly/2FPiRsw eq 31. this probably resolves
+    # the conditioning error I was encountering sometimes.
+
+    if length(dims)==1
+        @assert (n_up % 2) == 1 "Need N_σ odd in one dimension"
+        @assert (n_down % 2) == 1 "Need N_σ odd in one dimension"
+    end
 
     # find a well conditioned initial state
     conditioning_tol = 10^6

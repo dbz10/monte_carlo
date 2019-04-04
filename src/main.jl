@@ -3,7 +3,7 @@
 include("FFGmain.jl")
 include("lattices.jl")
 
-dl = [10,12,14]
+dl = [6,10,14]
 cl = zeros(size(dl))
 
 for i in 1:length(dl)

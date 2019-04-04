@@ -5,9 +5,11 @@
 
 module Lattices
 
-import LightGraphs
+
 using LinearAlgebra
-using LightGraphs: adjacency_matrix, neighbors
+using LightGraphs
+using SimpleWeightedGraphs
+import LightGraphs.cartesian_product
 
 abstract type Lattice end
 
@@ -17,6 +19,33 @@ struct SquareLattice <: Lattice
     dims::Tuple
     graph::LightGraphs.SimpleGraph{Int64}
     lattice_vectors::Array{Int64}
+end
+
+
+function get_MixedBoundarySquareLattice(dims)::SimpleWeightedGraph
+    """ This is an extension of the function Grid from LightGraphs to
+    make a weighted graph with antiperiodic boundary conditions in one direction
+    and periodic boundary conditions in the other, for the purposes
+    of obtaining a nondegenerate fermi surface.
+    https://journals.jps.jp/doi/pdf/10.1143/JPSJ.57.2482 """
+
+    # checks if T is large enough for product(dims)
+   Tw = widen(T)
+   n = one(T)
+   for d in dims
+       d <= 0 && return SimpleGraph{T}(0)
+       nw = Tw(n) * Tw(d)
+       n = T(nw)
+   end
+
+   # make anti periodic cycle in x direction
+   g = SimpleWeightedGraph(CycleGraph(dims[1]))
+   add_edge!(g,1,dims[1],-1)
+
+   for d in dims[2:end]
+       g = cartesian_product(SimpleWeightedGraph(CycleGraph(d)), g)
+   end
+   return g
 end
 
 function get_SquareLattice(dims;pbc=true)::SquareLattice
@@ -48,24 +77,47 @@ function get_Tightbinding_Wavefunctions(lattice)::Eigen
     return F
 end
 
-function nearest_neighbors(graph::LightGraphs.SimpleGraph{Int64},center_site::Int,n::Int)
-    """ returns indices of vertices that are within n links of the center site.
-    algorithm works recursively.
-    ex: on a graph representing a 1d chain,
-     nth_nearest_neighbors(graph, 5,2) = (3,4,5,6,7)
+# function nearest_neighbors(graph::LightGraphs.SimpleGraph{Int64},center_site::Int,n::Int)
+#     """ returns indices of vertices that are within n links of the center site.
+#     algorithm works recursively.
+#     ex: on a graph representing a 1d chain,
+#      nth_nearest_neighbors(graph, 5,2) = (3,4,5,6,7)
+#
+#      USE NEIGHBORHOOD INSTEAD.
+#      """
+#      neighbors_collection = [center_site]; # I don't think there's any way to preallocate this
+#      if n == 1
+#          neighbors_collection = [neighbors_collection ; neighbors(graph,center_site)]
+#      else
+#          for i in setdiff(neighbors(graph,center_site),neighbors_collection)
+#              neighbors_collection = [neighbors_collection ; nearest_neighbors(graph,i,n-1)]
+#          end
+#      end
+#
+#     return unique(neighbors_collection)
+# end
 
-     USE NEIGHBORHOOD INSTEAD. 
-     """
-     neighbors_collection = [center_site]; # I don't think there's any way to preallocate this
-     if n == 1
-         neighbors_collection = [neighbors_collection ; neighbors(graph,center_site)]
-     else
-         for i in setdiff(neighbors(graph,center_site),neighbors_collection)
-             neighbors_collection = [neighbors_collection ; nearest_neighbors(graph,i,n-1)]
-         end
-     end
 
-    return unique(neighbors_collection)
+
+function cartesian_product(g::G, h::G) where G <: AbstractSimpleWeightedGraph
+    """ Function overload for cartesian product for weighted graphs. For
+    some reason, not correctly loading override functions from package..."""
+    z = G(nv(g) * nv(h))
+    id(i, j) = (i - 1) * nv(h) + j
+    for e in edges(g)
+        i1, i2 = Tuple(e)
+        for j = 1:nv(h)
+            add_edge!(z, id(i1, j), id(i2, j), weight(e))
+        end
+    end
+
+    for e in edges(h)
+        j1, j2 = Tuple(e)
+        for i in vertices(g)
+            add_edge!(z, id(i, j1), id(i, j2), weight(e))
+        end
+    end
+    return z
 end
 
 end
