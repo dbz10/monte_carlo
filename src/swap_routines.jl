@@ -61,6 +61,9 @@ function compute_swapregion(chain::DoubleGutzwillerChain,
     Finally what is returned is the expectation value of the swap operator
     acting on this region which is,
     det(swapped copy 1)*det(swapped copy 2) / (det(og copy 1) * det(og copy 2))
+
+    Later, I may modify this to be more general/support more than 2 copies,
+    but for now it seems like thats more trouble than its worth.
     """
     state = get_State(chain)
     (spinc1, spinc2) = (state[1].spin_config.sc,
