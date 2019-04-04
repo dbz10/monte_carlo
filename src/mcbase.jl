@@ -111,6 +111,7 @@ function init_Chain!(
     chain.basechain.observable = observable
 end
 
+
 function do_move!(chain)
     move = get_Move(chain)
     process_move!(chain,move)
@@ -129,11 +130,12 @@ end
 
 
 
-function process_move!(chain,move)
+function process_move!(chain,move; forceaccept = false)
     """ Get the ratio for the proposed move
-    and decide whether to accept or reject"""
+    and decide whether to accept or reject. Forceaccept
+    is an optional keyword that can be useful for debugging"""
     ratio, extras = compute_ratio(chain,move) # extras is an optional
     # model based extra return
-    ACCEPT =  ratio > rand()
+    forceaccept ? ACCEPT = true : ACCEPT =  ratio > rand()
     update_chain!(ACCEPT,chain,move,extras=extras)
 end

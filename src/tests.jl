@@ -7,7 +7,7 @@ ffgmathtest = @testset "test-FFGMATH/LATTICES" begin
     ############### testing lattice routines #################################
     dims = (5,5);
     lg = Lattices.get_SquareLattice(dims,pbc=true).graph
-    @test sort(nearest_neighbors(lg, 3,2)) ==
+    @test sort(unique(neighborhood(lg, 3,2))) ==
     sort([3,4,5,2,1,9,8,7,13,23,18,24,22])
 
     dims = (2,3);
@@ -139,4 +139,69 @@ end
 @testset "maintest" begin
     include("maintest.jl")
     @test size(maintest()) == (3,)
+end
+
+@testset "swaproutines" begin
+    """ Test suite for swap routines. """
+    dims = (8,) # dimension of the lattice
+    lattice = Lattices.get_SquareLattice(dims,pbc=true) # make a square lattice
+    filling = 1 # setting filling ≢ 1 means there are holes.
+    model = Dict(
+        "dims" => dims,
+        "lattice" => lattice,
+        "filling" => filling,
+        "hamiltonian" => Lattices.get_Tightbinding_Wavefunctions,
+        "fermi_energy" => 0,
+        )
+    function observable(chain::FFG.GutzwillerChain)
+        state = FFG.get_State(chain)
+        Sz1 = state.spin_config.sc[1]
+        data = Dict("Sz1" => Sz1)
+        return data
+    end
+    policy = FFG.SwapNeighborsPolicy()
+    mc_spec = Dict("mc_steps" => 1E3,
+                    "mc_warmup_steps" => 1E3,
+                    "sample_interval" => 1E2)
+
+
+    dg = FFG.DoubleGutzwillerChain()
+    c1 = dg.replicas[1]
+    c2 = dg.replicas[2]
+    c1.basechain = FFG.MarkovChain()
+    c2.basechain = FFG.MarkovChain()
+    c1.basechain.model = model
+    c2.basechain.model = model
+
+    r_up1 = [1,2,4,5]
+    r_down1 = [3,6,7,8]
+    r_up2 = [2,3,4,6]
+    r_down2 = [1,5,7,8]
+
+    teststate1 = FFG.get_test_state(c1,r_up1,r_down1)
+    teststate2 = FFG.get_test_state(c2,r_up2,r_down2)
+
+
+    dg.replicas[1].basechain.state = teststate1
+    dg.replicas[2].basechain.state = teststate2
+
+    swapsites = [1,2,3,4,5,6]
+
+    (spinc1,spinc2) = (teststate1.spin_config.sc,teststate2.spin_config.sc)
+
+    Tinder1 = FFG.ElectronTinder([],[])
+    Tinder2 = FFG.ElectronTinder([],[])
+    for site = swapsites
+
+        if spinc1[site] != spinc2[site]
+            FFG.addUser!(Tinder1,site,spinc1[site])
+            FFG.addUser!(Tinder2,site,spinc2[site])
+        end
+    end
+    @test FFG.SwipeRight(Tinder1) == FFG.SwipeRight(FFG.ElectronTinder([1,5],[3,6]))
+    @test FFG.SwipeRight(Tinder2) == FFG.SwipeRight(FFG.ElectronTinder([3,6],[1,5]))
+
+    # now comes the difficult test...
+    FFG.compute_swapregion(dg,swapsites)
+
 end

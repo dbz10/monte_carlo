@@ -1,9 +1,9 @@
-# main.jl 
+# main.jl
 
 include("FFGmain.jl")
 include("lattices.jl")
 
-dl = [4,6,8]
+dl = [10,12,14]
 cl = zeros(size(dl))
 
 for i in 1:length(dl)
@@ -31,7 +31,7 @@ policy = FFG.SwapNeighborsPolicy()
 # MC specifications
 mc_spec = Dict(
     "mc_warmup_steps" => Int(1e2*prod(dims)),
-    "mc_steps" => Int(1e3*prod(dims)),
+    "mc_steps" => Int(1e4*prod(dims)),
     "sample_interval" => Int(prod(dims)*4),
     )
 

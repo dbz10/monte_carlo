@@ -88,6 +88,7 @@ end
 include("FFGmath.jl")
 include("FFGhelpers.jl")
 include("FFGobservables.jl")
+include("swap_routines.jl")
 
 """ High level functions """
 function get_Move(chain::GutzwillerChain)
@@ -113,6 +114,18 @@ function update_chain!(
     end
     update_Diagnostics!(chain,accept)
 end
+
+function update_state!(chain::GutzwillerChain,move;extras=nothing)
+    """ A subset of update_chain! used for debugging and in swap """
+    state = get_State(chain)
+    update_Rs!(state,move)
+    update_Bonds!(chain,move)
+    update_Determinants!(chain,move,extras)
+    update_Inverses!(state,move)
+    update_Spin_config!(state,move)
+    update_Business_directory!(state,move) # important that BD is updated last
+end
+
 
 function get_Wavefunctions(chain::GutzwillerChain)::Array
     """ This is specific to the model, so it is here and not in MCbase """
@@ -163,6 +176,62 @@ function get_init_state(chain::GutzwillerChain)::GutzwillerState
 
     R_up, R_down, filled_states = get_conditioned_state(
         chain,n_up,n_down, conditioning_tol)
+
+    # check whether filling is compatible with # states less than fermi energy
+    @assert isacceptablelattice(filled_states,filling) "Lattice not playing well with filling,
+         # please try different dimensions"
+
+    # make the business directory
+    business_directory = make_business_directory(R_up,R_down)
+
+    # make the spin configuration
+    spin_configuration = make_spin_config(R_up,R_down)
+
+    # create list of neighbors which can be swapped in current configuration
+    bonds = get_init_bonds(lattice.graph,spin_configuration)
+
+    # calculate determinants
+    det_A_up = get_Determinant(R_up,filled_states)
+    det_A_down = get_Determinant(R_down,filled_states)
+
+    # calculate inverse matrices for A_up and A_down
+    A_inv_up = get_Inverse_Matrix(R_up,filled_states)
+    A_inv_down = get_Inverse_Matrix(R_down,filled_states)
+
+    # make the state object and return
+    state = GutzwillerState(
+        R_up,R_down, business_directory, spin_configuration,bonds,
+        filled_states, det_A_up, det_A_down, A_inv_up,A_inv_down
+        )
+    return state
+end
+
+function get_test_state(chain::GutzwillerChain,R_up, R_down)::GutzwillerState
+    """ Function that creates states from input r_up and r_down """
+    model = get_Model(chain)
+    lattice = model["lattice"]
+    filling = model["filling"]
+    fermi_energy = model["fermi_energy"]
+    hamiltonian = model["hamiltonian"]
+    dims = model["dims"]
+
+    filled_states = get_Wavefunctions(chain)
+
+    # Distribute electrons over the sites of the lattice
+    num_sites = prod(dims)
+    sites = collect(1:num_sites)
+
+    # for now just assume filling = 1 and paramagnetic state
+    # later i can add functionality for magnetic states
+    # or states with holes
+    n_up = Int(num_sites*filling/2)
+    n_down = Int(num_sites*filling/2)
+
+    # find a well conditioned initial state
+    conditioning_tol = 10^6
+
+
+    filled_states = get_Wavefunctions(chain)
 
     # check whether filling is compatible with # states less than fermi energy
     @assert isacceptablelattice(filled_states,filling) "Lattice not playing well with filling,
