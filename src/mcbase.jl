@@ -126,7 +126,9 @@ function init_Chain!(
     model=model, observable=Nothing, policy=policy, mc_spec=mc_spec) # initializes the replicas
     chain.basechain.policy = policy
     chain.basechain.model = model
-    chain.basechain.data = observable(chain)
+    if observable != Nothing
+        chain.basechain.data = observable(chain)
+    end
     chain.basechain.diagnostics = get_init_diagnostics(chain)
     chain.basechain.observable = observable
 

@@ -113,6 +113,6 @@ function compute_swapregion(chain::DoubleGutzwillerChain,
     sdp = ss[1].det_A_up * ss[1].det_A_down * ss[2].det_A_up * ss[2].det_A_down
     odp = s0[1].det_A_up * s0[1].det_A_down * s0[2].det_A_up * s0[2].det_A_down
 
-    print("sdp: ",sdp," odp: ",odp,"\n")
+    # print("sdp: ",sdp," odp: ",odp,"\n")
     return sdp/odp
 end

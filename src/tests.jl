@@ -59,6 +59,30 @@ ffgmathtest = @testset "test-FFGMATH/LATTICES" begin
 end
 
 @testset "test-FFGMAIN/HELPERS" begin
+    ############# test chain initialization #######################
+    model = Dict(
+        "dims" => (2,3),
+        "lattice" => Lattices.get_SquareLattice((2,3),pbc=true),
+        "filling" => 1,
+        "hamiltonian" => Lattices.get_Tightbinding_Wavefunctions,
+        "fermi_energy" => 0,
+        )
+    policy = FFG.SwapNeighborsPolicy()
+    mc_spec = Dict("mc_steps" => 1,
+                        "mc_warmup_steps" => 1)
+
+
+    # just tests that the function doesn't error out
+    c1 = FFG.GutzwillerChain()
+    @test FFG.init_Chain!(c1,model=model,observable=Nothing,policy=policy,
+    mc_spec=mc_spec) == Nothing
+
+    c2 = FFG.DoubleGutzwillerChain()
+    @test FFG.init_Chain!(c2,model=model,observable=Nothing,policy=policy,
+    mc_spec=mc_spec) == Nothing
+
+
+
     ############ make a test chain $$$$$$$$$$$$$$$$$$$$$$$$
 
     model = Dict(
