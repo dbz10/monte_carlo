@@ -1,3 +1,4 @@
+# best practice: Ctrl-D out of REPL first, then run test
 using Test
 using LightGraphs
 using LinearAlgebra

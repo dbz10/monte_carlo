@@ -41,8 +41,8 @@ get_Model(c::ChainCollection) = get_Model(get_GlobalChain(c))
 get_State(c::ChainCollection) = get_State.(get_Chains(c))
 get_Policy(c::ChainCollection) = get_Policy(get_GlobalChain(c))
 get_Observable(c::ChainCollection) = get_Observable(get_GlobalChain(c))
-get_Diagnostics(c::ChainCollection) = get_Diagnostics.(get_Chains(c))
-get_Mc_Spec(c::ChainCollection) = get_Mc_Spec.(get_MarkovChain(c))
+get_Diagnostics(c::ChainCollection) = get_Diagnostics(get_GlobalChain(c))
+get_Mc_Spec(c::ChainCollection) = get_Mc_Spec(get_GlobalChain(c))
 get_Data(c::ChainCollection) = get_Data(get_GlobalChain(c))
 
 
@@ -68,7 +68,39 @@ function runMC!(chain::AbstractChain)
     aggregate_diagnostics!(chain)
 end
 
+function runMC!(chain::ChainCollection)
+    mc_specs = get_Mc_Spec(chain)
+    NUM_MC_STEPS = mc_specs["mc_steps"]
+    SAMPLE_INTERVAL = mc_specs["sample_interval"]
+
+    replicas = get_Replicas(chain)
+    # run burn in steps
+    do_warmup!.(replicas)
+
+    # carry out monte carlo sampling of observable
+    for i = 1:NUM_MC_STEPS
+        do_move!.(replicas)
+        if mod(i,SAMPLE_INTERVAL) == 0
+            measure_observable!(chain)
+        end
+    end
+
+    # condense measurement statistics and diagnostics from MC sampling
+    aggregate_measurements!(chain)
+    # aggregate_diagnostics!(chain)
+end
+
+
 function aggregate_measurements!(chain::AbstractChain)
+    data = get_Data(chain)
+    diagnostics = get_Diagnostics(chain)
+
+    for (key,val) in data
+        data[key] = val/diagnostics["num_measurements"]
+    end
+end
+
+function aggregate_measurements!(chain::ChainCollection)
     data = get_Data(chain)
     diagnostics = get_Diagnostics(chain)
 
@@ -82,6 +114,8 @@ function aggregate_diagnostics!(chain::AbstractChain)
     diagnostics["acceptance_ratio"] =
     diagnostics["accepted_moves"]/diagnostics["mc_steps"]
 end
+
+
 
 
 
@@ -99,11 +133,23 @@ function measure_observable!(chain::AbstractChain)
     diagnostics["num_measurements"] +=1
 end
 
+function measure_observable!(chain::ChainCollection)
+    observable = get_Observable(chain)
+    result = observable(chain) # expect a dict
+    data = get_Data(chain)
+    diagnostics = get_Diagnostics(chain)
+
+    for (key, val) in result
+        data[key] += val
+    end
+
+    diagnostics["num_measurements"] +=1
+end
+
 
 
 """ Initialize a markov chain """
-function init_Chain!(
-    chain::AbstractChain;
+function init_Chain!(chain::AbstractChain;
     model=model, observable=observable, policy=policy, mc_spec=mc_spec)
     chain.basechain = MarkovChain()
     chain.basechain.model = model
@@ -117,8 +163,7 @@ function init_Chain!(
     chain.basechain.observable = observable
 end
 
-function init_Chain!(
-    chain::ChainCollection;
+function init_Chain!(chain::ChainCollection;
     model=model, observable=observable, policy=policy, mc_spec=mc_spec)
         """ function overload for chain collection """
     # chain.basechain = MarkovChain() # for global data
@@ -126,6 +171,7 @@ function init_Chain!(
     model=model, observable=Nothing, policy=policy, mc_spec=mc_spec) # initializes the replicas
     chain.basechain.policy = policy
     chain.basechain.model = model
+    chain.basechain.mc_spec = mc_spec
     if observable != Nothing
         chain.basechain.data = observable(chain)
     end
