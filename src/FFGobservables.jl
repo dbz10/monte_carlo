@@ -26,7 +26,7 @@ function NeighborSzSz(chain::GutzwillerChain)
 end
 
 function MeasureSwap(chain::DoubleGutzwillerChain)
-    model = get_Model(chain)[1]
+    model = get_Model(chain)
     ns = prod(model["dims"])
 
     len = Int64(ns/2+2)

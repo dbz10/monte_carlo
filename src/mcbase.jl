@@ -35,13 +35,13 @@ get_Mc_Spec(c::AbstractChain) = get_MarkovChain(c).mc_spec
 get_Data(c::AbstractChain) = get_MarkovChain(c).data
 
 # extension to chain collection
-get_Chains(c::ChainCollection) = get_MarkovChain.(get_Replicas(c))
+get_Chains(c::ChainCollection) = get_MarkovChain.(c.replicas)
 get_GlobalChain(c::ChainCollection) = c.basechain
 get_Model(c::ChainCollection) = get_Model(get_GlobalChain(c))
 get_State(c::ChainCollection) = get_State.(get_Chains(c))
-get_Policy(c::ChainCollection) = get_Policy.(get_MarkovChain(c))
+get_Policy(c::ChainCollection) = get_Policy(get_GlobalChain(c))
 get_Observable(c::ChainCollection) = get_Observable(get_GlobalChain(c))
-get_Diagnostics(c::ChainCollection) = get_Diagnostics.(get_MarkovChain(c))
+get_Diagnostics(c::ChainCollection) = get_Diagnostics.(get_Chains(c))
 get_Mc_Spec(c::ChainCollection) = get_Mc_Spec.(get_MarkovChain(c))
 get_Data(c::ChainCollection) = get_Data(get_GlobalChain(c))
 
@@ -110,9 +110,26 @@ function init_Chain!(
     chain.basechain.state = get_init_state(chain)
     chain.basechain.policy = policy
     chain.basechain.mc_spec = mc_spec
+    if observable != Nothing
+        chain.basechain.data = observable(chain)
+    end
+    chain.basechain.diagnostics = get_init_diagnostics(chain)
+    chain.basechain.observable = observable
+end
+
+function init_Chain!(
+    chain::ChainCollection;
+    model=model, observable=observable, policy=policy, mc_spec=mc_spec)
+        """ function overload for chain collection """
+    # chain.basechain = MarkovChain() # for global data
+    init_Chain!.(get_Replicas(chain),
+    model=model, observable=Nothing, policy=policy, mc_spec=mc_spec) # initializes the replicas
+    chain.basechain.policy = policy
+    chain.basechain.model = model
     chain.basechain.data = observable(chain)
     chain.basechain.diagnostics = get_init_diagnostics(chain)
     chain.basechain.observable = observable
+
 end
 
 

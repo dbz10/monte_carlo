@@ -45,7 +45,7 @@ struct DoubleGutzwillerChain <: ChainCollection
     i.e. init_Chain!.(DGC) """
     replicas::Tuple{GutzwillerChain,GutzwillerChain} # replicas is a tuple of (gutz1, gutz2)
     basechain::MarkovChain # store "global" info like the observable and data
-    DoubleGutzwillerChain() = new((GutzwillerChain(),GutzwillerChain()))
+    DoubleGutzwillerChain() = new((GutzwillerChain(),GutzwillerChain()),MarkovChain())
 end
 get_Replicas(c::DoubleGutzwillerChain) = c.replicas # return the individual markov chains
 
@@ -279,6 +279,12 @@ function get_init_diagnostics(chain::GutzwillerChain)::Dict
             "accepted_moves" => 0,
             "num_measurements" => 0,
             "acceptance_ratio" => 0.0)
+    return d0
+end
+
+function get_init_diagnostics(chain::DoubleGutzwillerChain)::Dict
+    d0 = Dict("num_measurements" => 0,
+            )
     return d0
 end
 

@@ -31,8 +31,8 @@ function Swap(chain::DoubleGutzwillerChain,regionsize::Int)
 
     """ regionsize ≈ r, the radius of the region selected """
     states = get_State(chain) # (state1, state2)
-    lg = get_Model(chain)[1]["lattice"].graph # horrible
-    ns = prod(get_Model(chain)[1]["dims"]) # also horrible
+    lg = get_Model(chain)["lattice"].graph # horrible
+    ns = prod(get_Model(chain)["dims"]) # also horrible
 
     swap_per_site = zeros(ns)
 
