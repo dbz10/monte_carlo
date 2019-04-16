@@ -254,6 +254,6 @@ end
     # print(teststate1.det_A_up * teststate1.det_A_down * teststate2.det_A_up * teststate2.det_A_down,"\n")
 
     # manual_eval = (ts1p.det_A_up * ts1p.det_A_down * ts2p.det_A_up * ts2p.det_A_down)/(teststate1.det_A_up * teststate1.det_A_down * teststate2.det_A_up * teststate2.det_A_down)
-    print(FFG.compute_swapregion(dg,swapsites))
+    # print(FFG.compute_swapregion(dg,swapsites))
 
 end

@@ -27,7 +27,7 @@ end
 
 function MeasureSwap(chain::DoubleGutzwillerChain)
     model = get_Model(chain)
-    ns = prod(model["dims"])
+    ns =model["dims"][1]
 
     len = Int64(ns/2)
 

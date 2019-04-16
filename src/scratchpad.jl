@@ -9,7 +9,7 @@ using Plots
 
 
 # define a model
-dims = (50,) # dimension of the lattice
+dims = (30,) # dimension of the lattice
 lattice = Lattices.get_SquareLattice(dims) # make a square lattice
 filling = 1 # setting filling ≢ 1 means there are holes.
 
@@ -33,7 +33,7 @@ model = Dict(
 
 
 policy = FFG.SwapNeighborsPolicy()
-mc_spec = Dict("mc_steps" => 1E4*prod(dims),
+mc_spec = Dict("mc_steps" => 1E6*prod(dims),
                 "mc_warmup_steps" => 100*prod(dims),
                 "sample_interval" => 4*prod(dims))
 
@@ -55,10 +55,10 @@ FFG.init_Chain!(doublegutz,
 
 
 
-@time FFG.runMC!(doublegutz)
+FFG.runMC!(doublegutz)
 
 z = FFG.get_Data(doublegutz)["swap"]
-plot(collect(0: dims[1]/2+1),-log.(z))
+plot(collect(1:2:dims[1]),-log.(z))
 # print(-log.(FFG.MeasureSwap(doublegutz)["swap"]))
 print(-log.(z))
 print(FFG.get_Diagnostics(doublegutz))

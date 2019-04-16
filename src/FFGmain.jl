@@ -26,6 +26,7 @@ using IterTools: nth
 using LightGraphs:
     SimpleGraph, edges, src, dst, rem_edge!, add_edge!, neighbors,
     adjacency_matrix, ne, nv, vertices
+using SimpleWeightedGraphs: SimpleWeightedGraph
 using LinearAlgebra: dot, det, inv, eigen, cond
 
 # abstract type definitions
@@ -344,8 +345,7 @@ function make_spin_config(R_up,R_down)::SpinConfiguration
     return SpinConfiguration(sc)
 end
 
-function get_init_bonds(
-        graph::SimpleGraph{Int64},
+function get_init_bonds(graph::SimpleGraph{Int64},
         spin_config::SpinConfiguration)::SimpleGraph{Int64}
 
     # when the graph is created, it is fully connected.
@@ -355,6 +355,29 @@ function get_init_bonds(
     # we need to make a deep copy of the graph because as we operate
     # on the graph its list of edges will change. instead we operate on a
     # copy of graph, and return that
+    bonds = deepcopy(graph)
+
+    for edge in deepcopy(edges(bonds))
+        u, v = src(edge), dst(edge)
+        if spin_config.sc[u] == spin_config.sc[v]
+            rem_edge!(bonds,edge)
+        end
+    end
+
+    return bonds
+end
+
+function get_init_bonds(graph::SimpleWeightedGraph,
+        spin_config::SpinConfiguration)::SimpleGraph{Int64}
+
+    # when the graph is created, it is fully connected.
+    # now we loop over the edges and use the spin configuration to remove bonds
+    # where necessary. we do not need to add any bonds in the initial step
+
+    # we need to make a deep copy of the graph because as we operate
+    # on the graph its list of edges will change. instead we operate on a
+    # copy of graph, and return that
+    graph = SimpleGraph(adjacency_matrix(graph))
     bonds = deepcopy(graph)
 
     for edge in deepcopy(edges(bonds))

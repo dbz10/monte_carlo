@@ -28,16 +28,19 @@ end
 using Statistics: mean
 using LightGraphs: neighborhood
 function Swap(chain::DoubleGutzwillerChain,regionsize::Int)
-
     """ regionsize ≈ r, the radius of the region selected """
+
     states = get_State(chain) # (state1, state2)
-    lg = get_Model(chain)["lattice"].graph # horrible
-    ns = prod(get_Model(chain)["dims"]) # also horrible
+    lg = get_Model(chain)["lattice"].graph
+    ns = prod(get_Model(chain)["dims"])
 
     swap_per_site = zeros(ns)
 
+    # redundancy for mixed BC lattice
+    lgprime = SimpleGraph(adjacency_matrix(lg))
+
     for v in vertices(lg)
-        sites = unique(neighborhood(lg,v,regionsize))
+        sites = unique(neighborhood(lgprime,v,regionsize))
         swap_per_site[v] = compute_swapregion(chain,sites)
     end
 
@@ -65,9 +68,9 @@ function compute_swapregion(chain::DoubleGutzwillerChain,
     Later, I may modify this to be more general/support more than 2 copies,
     but for now it seems like thats more trouble than its worth.
     """
-    state = get_State(chain)
-    (spinc1, spinc2) = (state[1].spin_config.sc,
-                        state[2].spin_config.sc)
+    s0 = get_State(chain)
+    (spinc1, spinc2) = (s0[1].spin_config.sc,
+                        s0[2].spin_config.sc)
 
     if sum(spinc1[sites])!=sum(spinc2[sites]) # regions must have same quantum #
         return 0
@@ -93,26 +96,40 @@ function compute_swapregion(chain::DoubleGutzwillerChain,
     # now because update_chain! modifies the state, make copies of
     # the two states to update
     free_chains = deepcopy(get_Replicas(chain))
+    free_states = get_State.(free_chains)
 
     for i in 1:length(MoveList1)
         # process_move!(free_chains[1],MoveList1[i],forceaccept=true)
         # process_move!(free_chains[2],MoveList2[i],forceaccept=true)
 
-        ratio, extras = compute_ratio(free_chains[1],MoveList1[i])
-        update_state!(free_chains[1],MoveList1[i],extras=extras)
+        # ratio, extras = compute_ratio(free_chains[1],MoveList1[i])
+        # update_state!(free_chains[1],MoveList1[i],extras=extras)
+        #
+        # ratio, extras = compute_ratio(free_chains[2],MoveList2[i])
+        # update_state!(free_chains[2],MoveList2[i],extras=extras)
 
-        ratio, extras = compute_ratio(free_chains[2],MoveList2[i])
-        update_state!(free_chains[2],MoveList2[i],extras=extras)
+
+        update_Rs!(free_states[1],MoveList1[i])
+        update_Rs!(free_states[2],MoveList2[i])
     end
 
-    s0 = state # shorter name to make the det product fit on one line
-    ss = (get_State(free_chains[1]), get_State(free_chains[2])) # swapped states
+    # it appears that its possible to have severe numerical issues
+    # by processing the moves in this way. safer is to generate new r_up
+    # and r_down, and then compute determinants from scratch at
+    # higher computational cost.
 
 
-    # determinant products in swapped and original wavefunctions
-    sdp = ss[1].det_A_up * ss[1].det_A_down * ss[2].det_A_up * ss[2].det_A_down
+
+
+
+    ss1 = get_test_state(free_chains[1],free_states[1].r_up, free_states[1].r_down)
+    ss2 = get_test_state(free_chains[2],free_states[2].r_up, free_states[2].r_down)
+
+    sdp = ss1.det_A_up * ss1.det_A_down * ss2.det_A_up * ss2.det_A_down
     odp = s0[1].det_A_up * s0[1].det_A_down * s0[2].det_A_up * s0[2].det_A_down
 
+
     # print("sdp: ",sdp," odp: ",odp,"\n")
+
     return sdp/odp
 end
