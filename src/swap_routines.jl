@@ -119,13 +119,18 @@ function compute_swapregion(chain::DoubleGutzwillerChain,
     # higher computational cost.
 
 
+    filled_states = get_Wavefunctions(free_chains[1])
+
+    det1up = get_Determinant(free_states[1].r_up,filled_states)
+    det1down = get_Determinant(free_states[1].r_down,filled_states)
+    det2up = get_Determinant(free_states[2].r_up,filled_states)
+    det2down = get_Determinant(free_states[2].r_down,filled_states)
 
 
+    # ss1 = get_test_state(free_chains[1],free_states[1].r_up, free_states[1].r_down)
+    # ss2 = get_test_state(free_chains[2],free_states[2].r_up, free_states[2].r_down)
 
-    ss1 = get_test_state(free_chains[1],free_states[1].r_up, free_states[1].r_down)
-    ss2 = get_test_state(free_chains[2],free_states[2].r_up, free_states[2].r_down)
-
-    sdp = ss1.det_A_up * ss1.det_A_down * ss2.det_A_up * ss2.det_A_down
+    sdp = det1up * det1down * det2up * det2down
     odp = s0[1].det_A_up * s0[1].det_A_down * s0[2].det_A_up * s0[2].det_A_down
 
 
