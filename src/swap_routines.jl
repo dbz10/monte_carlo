@@ -98,43 +98,63 @@ function compute_swapregion(chain::DoubleGutzwillerChain,
     free_chains = deepcopy(get_Replicas(chain))
     free_states = get_State.(free_chains)
 
-    for i in 1:length(MoveList1)
-        # process_move!(free_chains[1],MoveList1[i],forceaccept=true)
-        # process_move!(free_chains[2],MoveList2[i],forceaccept=true)
+    @assert length(MoveList1) == length(MoveList2) "compute swapregion: move lists
+    for two copies are of different length"
 
-        # ratio, extras = compute_ratio(free_chains[1],MoveList1[i])
-        # update_state!(free_chains[1],MoveList1[i],extras=extras)
-        #
-        # ratio, extras = compute_ratio(free_chains[2],MoveList2[i])
-        # update_state!(free_chains[2],MoveList2[i],extras=extras)
+    # try to do "fast" determinant update with all moves simultaneously
+    n_moves = length(MoveList1)
+    num_particles = length(free_states[1].r_up) # not very pretty
 
+    U_up_copy1 = zeros((num_particles,n_moves))
+    U_down_copy1 = zeros((num_particles,n_moves))
+    V_up_copy1 = zeros((num_particles,n_moves))
+    V_down_copy1 = zeros((num_particles,n_moves))
 
-        update_Rs!(free_states[1],MoveList1[i])
-        update_Rs!(free_states[2],MoveList2[i])
+    U_up_copy2 = zeros((num_particles,n_moves))
+    U_down_copy2 = zeros((num_particles,n_moves))
+    V_up_copy2 = zeros((num_particles,n_moves))
+    V_down_copy2 = zeros((num_particles,n_moves))
+
+    for i in 1:n_moves
+        # update_Rs!(free_states[1],MoveList1[i])
+        # update_Rs!(free_states[2],MoveList2[i])
+
+        U_up_copy1[:,i], V_up_copy1[:,i], U_down_copy1[:,i], V_down_copy1[:,i] =
+        get_update_vectors(free_states[1],MoveList1[i])
+
+        U_up_copy2[:,i], V_up_copy2[:,i], U_down_copy2[:,i], V_down_copy2[:,i] =
+        get_update_vectors(free_states[2],MoveList2[i])
+
     end
 
-    # it appears that its possible to have severe numerical issues
-    # by processing the moves in this way. safer is to generate new r_up
-    # and r_down, and then compute determinants from scratch at
-    # higher computational cost.
+    # its important to do the determinant ratio updates all at once
+    # brute force reevaluation of determinants code left in for debugging
+
+    #
+    # filled_states = get_Wavefunctions(free_chains[1])
+    #
+    # det1up = get_Determinant(free_states[1].r_up,filled_states)
+    # det1down = get_Determinant(free_states[1].r_down,filled_states)
+    # det2up = get_Determinant(free_states[2].r_up,filled_states)
+    # det2down = get_Determinant(free_states[2].r_down,filled_states)
 
 
-    filled_states = get_Wavefunctions(free_chains[1])
+    det_ratio_1u = det_ratio_factor(free_states[1].A_inv_up,U_up_copy1,V_up_copy1)
+    det_ratio_1d = det_ratio_factor(free_states[1].A_inv_down,U_down_copy1,V_down_copy1)
+    det_ratio_2u = det_ratio_factor(free_states[2].A_inv_up,U_up_copy2,V_up_copy2)
+    det_ratio_2d = det_ratio_factor(free_states[2].A_inv_down,U_down_copy2,V_down_copy2)
 
-    det1up = get_Determinant(free_states[1].r_up,filled_states)
-    det1down = get_Determinant(free_states[1].r_down,filled_states)
-    det2up = get_Determinant(free_states[2].r_up,filled_states)
-    det2down = get_Determinant(free_states[2].r_down,filled_states)
-
+    fast_ratio = det_ratio_1u * det_ratio_1d * det_ratio_2u * det_ratio_2d
 
     # ss1 = get_test_state(free_chains[1],free_states[1].r_up, free_states[1].r_down)
     # ss2 = get_test_state(free_chains[2],free_states[2].r_up, free_states[2].r_down)
 
-    sdp = det1up * det1down * det2up * det2down
-    odp = s0[1].det_A_up * s0[1].det_A_down * s0[2].det_A_up * s0[2].det_A_down
+    # sdp = det1up * det1down * det2up * det2down
+    # odp = s0[1].det_A_up * s0[1].det_A_down * s0[2].det_A_up * s0[2].det_A_down
 
 
     # print("sdp: ",sdp," odp: ",odp,"\n")
 
-    return sdp/odp
+
+    return fast_ratio
 end
