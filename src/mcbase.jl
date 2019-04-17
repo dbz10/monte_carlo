@@ -77,6 +77,13 @@ function runMC!(chain::ChainCollection)
     # run burn in steps
     do_warmup!.(replicas)
 
+    # take first measurement
+    observable = get_Observable(chain)
+
+    if observable != Nothing
+        chain.basechain.data = observable(chain)
+    end
+
     # carry out monte carlo sampling of observable
     for i = 1:NUM_MC_STEPS
         do_move!.(replicas)
@@ -157,9 +164,6 @@ function init_Chain!(chain::AbstractChain;
     chain.basechain.state = get_init_state(chain)
     chain.basechain.policy = policy
     chain.basechain.mc_spec = mc_spec
-    if observable != Nothing
-        chain.basechain.data = observable(chain)
-    end
     chain.basechain.diagnostics = get_init_diagnostics(chain)
     chain.basechain.observable = observable
 end
@@ -173,9 +177,7 @@ function init_Chain!(chain::ChainCollection;
     chain.basechain.policy = policy
     chain.basechain.model = model
     chain.basechain.mc_spec = mc_spec
-    if observable != Nothing
-        chain.basechain.data = observable(chain)
-    end
+
     chain.basechain.diagnostics = get_init_diagnostics(chain)
     chain.basechain.observable = observable
 
@@ -194,6 +196,12 @@ function do_warmup!(chain)
     num_mc_warmup_steps = mc_specs["mc_warmup_steps"]
     for i = 1:num_mc_warmup_steps
         do_move!(chain)
+    end
+
+    observable = get_Observable(chain)
+
+    if observable != Nothing
+        chain.basechain.data = observable(chain)
     end
 end
 
