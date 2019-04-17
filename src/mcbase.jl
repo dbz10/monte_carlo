@@ -82,7 +82,7 @@ function runMC!(chain::ChainCollection)
         do_move!.(replicas)
         if mod(i,SAMPLE_INTERVAL) == 0
             measure_observable!(chain)
-            # print(get_Data(chain),"\n")
+            print(get_Data(chain),"\n")
         end
     end
 
