@@ -37,10 +37,10 @@ function Swap(chain::DoubleGutzwillerChain,regionsize::Int)
     swap_per_site = zeros(ns)
 
     # redundancy for mixed BC lattice
-    lgprime = SimpleGraph(adjacency_matrix(lg))
+    lg0 = SimpleGraph(adjacency_matrix(lg))
 
-    for v in vertices(lgprime)
-        sites = unique(neighborhood(lgprime,v,regionsize))
+    for v in vertices(lg0)
+        sites = unique(neighborhood(lg0,v,regionsize))
         swap_per_site[v] = compute_swapregion(chain,sites)
     end
 
