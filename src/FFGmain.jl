@@ -134,11 +134,10 @@ function get_Wavefunctions(chain::GutzwillerChain)::Array
     model = get_Model(chain)
     lattice = model["lattice"]
     fermi_energy = model["fermi_energy"]
-    hamiltonian = model["hamiltonian"]
-    # calculate the determinants of the up and down spin matrices
-    EO = hamiltonian(lattice) # eigen object
-    wavefunctions = EO.vectors # wavefunctions[i,j] =   ϕ_j(r_i)
-    eigenvalues = EO.values
+    hamiltonian = model["hamiltonian"] # eigen object
+
+    wavefunctions = hamiltonian.vectors # wavefunctions[i,j] =   ϕ_j(r_i)
+    eigenvalues = hamiltonian.values
     filled_mask = eigenvalues.<fermi_energy # find index of filled wavefunctions
     filled_states = wavefunctions[:,filled_mask] # ϕ_{ϵ(j) < ϵ_f} (r_i)
 

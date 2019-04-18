@@ -89,7 +89,7 @@ function runMC!(chain::ChainCollection)
         do_move!.(replicas)
         if mod(i,SAMPLE_INTERVAL) == 0
             measure_observable!(chain)
-            print(get_Data(chain),"\n")
+            println("On measurerement ", i/SAMPLE_INTERVAL," out of ", NUM_MC_STEPS/SAMPLE_INTERVAL)
         end
     end
 

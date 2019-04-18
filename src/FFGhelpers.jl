@@ -179,3 +179,13 @@ function get_update_vectors(state::GutzwillerState,move::ExchangeMove)
 
     return u1,v1,u2,v2
 end
+
+"""transition to julia 1.0"""
+function ind2sub(dims, ind)
+    return Tuple(CartesianIndices(dims)[ind])
+end
+
+"""transition to julia 1.0"""
+function sub2ind(dims, inds...)
+    return (LinearIndices(dims))[inds...]
+end
