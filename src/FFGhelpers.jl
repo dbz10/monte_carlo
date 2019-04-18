@@ -24,12 +24,6 @@ function get_updated_bonds(chain::GutzwillerChain,move::ExchangeMove)::SimpleGra
     return bonds
 end
 
-# deprecated
-# function get_electron_index(site::Int64,state::GutzwillerState)::Int64
-#     ns = length(state.business_directory)
-#     return ((site-1) % (ns/2)) + 1
-# end
-
 function get_conditioned_state(
     chain, n_up,n_down, conditioning_tol=10^6)
     sites = collect(1:n_up+n_down)
@@ -178,14 +172,4 @@ function get_update_vectors(state::GutzwillerState,move::ExchangeMove)
     end
 
     return u1,v1,u2,v2
-end
-
-"""transition to julia 1.0"""
-function ind2sub(dims, ind)
-    return Tuple(CartesianIndices(dims)[ind])
-end
-
-"""transition to julia 1.0"""
-function sub2ind(dims, inds...)
-    return (LinearIndices(dims))[inds...]
 end
