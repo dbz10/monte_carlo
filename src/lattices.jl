@@ -78,25 +78,68 @@ function get_Tightbinding_Wavefunctions(lattice::MixedBCSquareLattice)::Eigen
     return F
 end
 
-# function nearest_neighbors(graph::LightGraphs.SimpleGraph{Int64},center_site::Int,n::Int)
-#     """ returns indices of vertices that are within n links of the center site.
-#     algorithm works recursively.
-#     ex: on a graph representing a 1d chain,
-#      nth_nearest_neighbors(graph, 5,2) = (3,4,5,6,7)
-#
-#      USE NEIGHBORHOOD INSTEAD.
-#      """
-#      neighbors_collection = [center_site]; # I don't think there's any way to preallocate this
-#      if n == 1
-#          neighbors_collection = [neighbors_collection ; neighbors(graph,center_site)]
-#      else
-#          for i in setdiff(neighbors(graph,center_site),neighbors_collection)
-#              neighbors_collection = [neighbors_collection ; nearest_neighbors(graph,i,n-1)]
-#          end
-#      end
-#
-#     return unique(neighbors_collection)
-# end
+function get_2DCSL_Wavefunctions(lattice::SquareLattice,Δ)::Eigen
+    lg = lattice.graph
+    dims = lattice.dims
+    nsites = prod(dims)
+    ham = zeros(ComplexF64,(nsites,nsites))
+    Lx = dims[1]
+    Ly = dims[2]
+
+    for y = 1:dims[2]
+        # loop over y layers. odd layers have hopping -t in the x dir
+        # even layers have hopping +t in the x dir
+        for x = 1:dims[1]
+            id0 = sub2ind(dims,x,y)
+
+            if (y % 2) == 1
+                idp = sub2ind(dims,x,wrap(y+1,Ly))
+                ham[idp,id0] = -1
+
+                idp = sub2ind(dims,wrap(x+1,Lx),y)
+                ham[idp,id0] = +1
+
+                idp = sub2ind(dims,wrap(x+1,Lx),wrap(y+1,Ly))
+                ham[idp,id0] = +1im*Δ
+
+                idp = sub2ind(dims,wrap(x+1,Lx),wrap(y-1,Ly))
+                ham[idp,id0] = -1im*Δ
+            else
+                idp = sub2ind(dims,x,wrap(y+1,Ly))
+                ham[idp,id0] = -1
+
+                idp = sub2ind(dims,wrap(x+1,Lx),y)
+                ham[idp,id0] = -1
+
+                idp = sub2ind(dims,wrap(x+1,Lx),wrap(y+1,Ly))
+                ham[idp,id0] = -1im*Δ
+
+                idp = sub2ind(dims,wrap(x+1,Lx),wrap(y-1,Ly))
+                ham[idp,id0] = +1im*Δ
+            end
+        end
+    end
+
+    ham += ham'
+    # print(ham)
+    F = eigen(ham)
+    return F
+end
+
+function wrap(x,a)
+    """ wraps x to between 1 and a """
+    return fldmod(x-1,a)[2]+1
+end
+
+"""transition to julia 1.0"""
+function ind2sub(dims, ind)
+    return Tuple(CartesianIndices(dims)[ind])
+end
+
+"""transition to julia 1.0"""
+function sub2ind(dims, inds...)
+    return (LinearIndices(dims))[inds...]
+end
 
 
 
