@@ -80,8 +80,8 @@ mutable struct GutzwillerState <: AbstractState
      spin_config::SpinConfiguration # a map of the spin configuration onto the graph
      bonds::SimpleGraph{Int64} # which bonds have disaligned spins
      wavefunctions::Array # wavefunctions ϕ_j(r_i) where ϵ_j < ϵ_fermi
-     det_A_up::Float64
-     det_A_down::Float64
+     det_A_up::ComplexF64
+     det_A_down::ComplexF64
      A_inv_up::Array
      A_inv_down::Array
 end
@@ -127,7 +127,6 @@ function update_state!(chain::GutzwillerChain,move;extras=nothing)
     update_Spin_config!(state,move)
     update_Business_directory!(state,move) # important that BD is updated last
 end
-
 
 function get_Wavefunctions(chain::GutzwillerChain)::Array
     """ This is specific to the model, so it is here and not in MCbase """
@@ -323,7 +322,7 @@ function compute_ratio(chain::GutzwillerChain,move::ExchangeMove)
     # we also need the ratio of proposal factors
     pf_ratio = get_proposal_factor_ratio(chain,move)
 
-    return det_ratio_up^2*det_ratio_down^2*pf_ratio, (det_ratio_up, det_ratio_down)
+    return abs(det_ratio_up)^2*abs(det_ratio_down)^2*pf_ratio, (det_ratio_up, det_ratio_down)
 end
 
 function get_proposal_factor_ratio(chain::GutzwillerChain,move::ExchangeMove)
