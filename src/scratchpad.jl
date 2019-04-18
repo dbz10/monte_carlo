@@ -11,15 +11,15 @@ using Statistics
 
 
 # define a model
-dims = (12,12) # dimension of the lattice
+dims = (6,6) # dimension of the lattice
 lattice = Lattices.get_SquareLattice(dims,pbc=true) # make a square lattice
 filling = 1 # setting filling ≢ 1 means there are holes.
 
 # gplot(SimpleGraph(adjacency_matrix(lattice.graph)),nodelabel=collect(1:nv(lattice.graph)))
 
-F = Lattices.get_2DCSL_Wavefunctions(lattice,0.5)
-histogram(F.values,bins=50)
-plot(F.values)
+# F = Lattices.get_2DCSL_Wavefunctions(lattice,0.5)
+# histogram(F.values,bins=50)
+# plot(F.values)
 
 Δ = 0.5
 model = Dict(
@@ -29,6 +29,7 @@ model = Dict(
     "hamiltonian" => Lattices.get_2DCSL_Wavefunctions(lattice,Δ),
     "fermi_energy" => 0,
     )
+
 
 # function observable(chain::FFG.GutzwillerChain)
 #     state = FFG.get_State(chain)
@@ -61,26 +62,40 @@ d = -log.(data)
 
 y = mean(d,dims=1)'
 err = std(d,dims=1)'
-plotly()
 plot(x,y,yerror=err)
 # sites = unique(neighborhood(lattice.graph,39,1))
 # print(FFG.compute_swapregion(doublegutz,sites),"\n")
 # #
 
 
-
-
-FFG.runMC!(doublegutz)
-# FFG.aggregate_measurements!(doublegutz)
-
-z = FFG.get_Data(doublegutz)["swap"]
-l = collect(1:2:dims[1])
-
-plot(l,-log.(z))
-# print(-log.(FFG.MeasureSwap(doublegutz)["swap"]))
-print(-log.(z))
-print(FFG.get_Diagnostics(doublegutz))
-
-z = [1im 0.5im; 2 2im]
-
-z+=z'
+#
+#
+# FFG.runMC!(doublegutz)
+# # FFG.aggregate_measurements!(doublegutz)
+#
+# z = FFG.get_Data(doublegutz)["swap"]
+# l = collect(1:2:dims[1])
+#
+# plot(l,-log.(z))
+# # print(-log.(FFG.MeasureSwap(doublegutz)["swap"]))
+# print(-log.(z))
+# print(FFG.get_Diagnostics(doublegutz))
+#
+# z = [1im 0.5im; 2 2im]
+#
+# z = zeros((2,2))
+#
+# typeof(z)
+#
+# z[1,1] = 1im
+#
+# z = 1.04 + 0.23im
+#
+# t = typeof(z)
+#
+# z = zeros(ComplexF64,(3,3))
+#
+# typeof(z) == Complex{Float64}
+#
+# z = zeros(t,(3,3))
+#

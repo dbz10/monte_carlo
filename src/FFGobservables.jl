@@ -27,11 +27,14 @@ end
 
 function MeasureSwap(chain::DoubleGutzwillerChain)
     model = get_Model(chain)
+    s = get_State(chain)
     ns =model["dims"][1]
 
     len = Int64(ns/2)
 
-    sw = zeros(len)
+    type = typeof(s[1].det_A_up)
+    sw = zeros(type,len)
+    
     for i = 1:len
         sw[i] = Swap(chain,i-1) # regionsize 0 means just 1 site
     end

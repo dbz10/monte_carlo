@@ -34,7 +34,8 @@ function Swap(chain::DoubleGutzwillerChain,regionsize::Int)
     lg = get_Model(chain)["lattice"].graph
     ns = prod(get_Model(chain)["dims"])
 
-    swap_per_site = zeros(ns)
+    type = typeof(states[1].det_A_up)
+    swap_per_site = zeros(type,ns)
 
     # redundancy for mixed BC lattice
     lg0 = SimpleGraph(adjacency_matrix(lg))
@@ -105,15 +106,17 @@ function compute_swapregion(chain::DoubleGutzwillerChain,
     n_moves = length(MoveList1)
     num_particles = length(free_states[1].r_up) # not very pretty
 
-    U_up_copy1 = zeros((num_particles,n_moves))
-    U_down_copy1 = zeros((num_particles,n_moves))
-    V_up_copy1 = zeros((num_particles,n_moves))
-    V_down_copy1 = zeros((num_particles,n_moves))
+    type = typeof(s0[1].det_A_up) # complexf64 or f64
 
-    U_up_copy2 = zeros((num_particles,n_moves))
-    U_down_copy2 = zeros((num_particles,n_moves))
-    V_up_copy2 = zeros((num_particles,n_moves))
-    V_down_copy2 = zeros((num_particles,n_moves))
+    U_up_copy1 = zeros(type,(num_particles,n_moves))
+    U_down_copy1 = zeros(type,(num_particles,n_moves))
+    V_up_copy1 = zeros(type,(num_particles,n_moves))
+    V_down_copy1 = zeros(type,(num_particles,n_moves))
+
+    U_up_copy2 = zeros(type,(num_particles,n_moves))
+    U_down_copy2 = zeros(type,(num_particles,n_moves))
+    V_up_copy2 = zeros(type,(num_particles,n_moves))
+    V_down_copy2 = zeros(type,(num_particles,n_moves))
 
     for i in 1:n_moves
         # update_Rs!(free_states[1],MoveList1[i])
