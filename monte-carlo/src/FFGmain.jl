@@ -80,7 +80,7 @@ mutable struct GutzwillerState <: AbstractState
      spin_config::SpinConfiguration # a map of the spin configuration onto the graph
      bonds::SimpleGraph{Int64} # which bonds have disaligned spins
      wavefunctions::Array # wavefunctions ϕ_j(r_i) where ϵ_j < ϵ_fermi
-     det_A_up::Any
+     det_A_up::Any # could be real or complex
      det_A_down::Any
      A_inv_up::Array
      A_inv_down::Array

@@ -11,13 +11,13 @@ using Statistics
 
 
 # define a model
-dims = (6,6) # dimension of the lattice
+dims = (12,12) # dimension of the lattice
 lattice = Lattices.get_SquareLattice(dims,pbc=true) # make a square lattice
 filling = 1 # setting filling ≢ 1 means there are holes.
 
 # gplot(SimpleGraph(adjacency_matrix(lattice.graph)),nodelabel=collect(1:nv(lattice.graph)))
 
-# F = Lattices.get_2DCSL_Wavefunctions(lattice,0.5)
+# F = Lattices.get_2DCSL_Wavefunctions(lattice,0.25)
 # histogram(F.values,bins=50)
 # plot(F.values)
 
@@ -38,16 +38,17 @@ model = Dict(
 #     return data
 # end
 
-n_runs = 10
+n_runs = 300
 
 policy = FFG.SwapNeighborsPolicy()
-mc_spec = Dict("mc_steps" => 1E3*prod(dims),
-                "mc_warmup_steps" => 100*prod(dims),
-                "sample_interval" => 5*prod(dims))
+mc_spec = Dict("mc_steps" => 3E3*prod(dims),
+                "mc_warmup_steps" => 300*prod(dims),
+                "sample_interval" => 10*prod(dims))
 
 x = collect(1:2:dims[1])
-data = zeros(n_runs,length(x))
+data = zeros(ComplexF64,n_runs,length(x))
 for j = 1:n_runs
+    println("On run ",j)
     doublegutz = FFG.DoubleGutzwillerChain()
     FFG.init_Chain!(doublegutz,
             model=model,observable=FFG.MeasureSwap,policy=policy,mc_spec=mc_spec
@@ -57,12 +58,19 @@ for j = 1:n_runs
     data[j,:] = z
 end
 
+real(1+2im)
+print(mean(data,dims=1))
 
-d = -log.(data)
 
-y = mean(d,dims=1)'
+
+d = -log.(abs.(real.(data)))
+y = -log.(abs.(mean(data,dims=1)))'
+
 err = std(d,dims=1)'
-plot(x,y,yerror=err)
+plotly()
+plot(x,y)
+
+z = 2
 # sites = unique(neighborhood(lattice.graph,39,1))
 # print(FFG.compute_swapregion(doublegutz,sites),"\n")
 # #
